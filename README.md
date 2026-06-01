@@ -52,28 +52,6 @@ src/main/java/com/furqan/ecommerce
 * Docker
 * PostgreSQL (Docker)
 
-## Running PostgreSQL with Docker
-
-```bash
-docker run -d \
-  --name E-Commerce-Platform \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=ecommerce \
-  -p 5432:5432 \
-  postgres:17
-```
-
-## Database Configuration
-
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/ecommerce
-spring.datasource.username=postgres
-spring.datasource.password=postgres
-
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
-```
 
 Application URL:
 
