@@ -1,5 +1,6 @@
 package com.furqan.ecommerce.service;
 
+
 import com.furqan.ecommerce.dto.UserRequestDto;
 import com.furqan.ecommerce.dto.UserResponseDto;
 import com.furqan.ecommerce.entity.UserEntity;
@@ -26,23 +27,21 @@ public class UserService {
                     "user already exists with email : " + userRequestDto.getEmail()
             );
         }
-        UserEntity userEntity = new UserEntity();
-        userEntity.setName(userRequestDto.getName());
-        userEntity.setEmail(userRequestDto.getEmail());
-        userEntity.setPassword(userRequestDto.getPassword());
-        userEntity.setPhoneNumber(userRequestDto.getPhoneNumber());
-        userEntity.setLanguage(userRequestDto.getLanguage());
-        userEntity.setIsActive(true);
+        UserEntity userEntity = UserEntity.builder()
+                .firstName(userRequestDto.getFirstName())
+                .middleName(userRequestDto.getMiddleName())
+                .lastName(userRequestDto.getLastName())
+                .email(userRequestDto.getEmail())
+                .password(userRequestDto.getPassword())
+                .phoneNumber(userRequestDto.getPhoneNumber())
+                .countryCode(userRequestDto.getCountryCode())
+                .language(userRequestDto.getLanguage() != null ? userRequestDto.getLanguage() : "english")
+                .isActive(true)
+                .build();
 
         UserEntity savedUser = userRepository.save(userEntity);
-        return UserResponseDto.builder()
-                .userId(savedUser.getUserId())
-                .name(savedUser.getName())
-                .email(savedUser.getEmail())
-                .phoneNumber(savedUser.getPhoneNumber())
-                .isActive(savedUser.getIsActive())
-                .language(savedUser.getLanguage())
-                .build();
+
+        return toResponseDto(savedUser);
     }
 
     public UserEntity getUserById(Long userId) {
@@ -61,5 +60,21 @@ public class UserService {
                         new RuntimeException("user not found with id: "+id));
         userEntity.setIsActive(requestedIsActive);
         userRepository.save(userEntity);
+    }
+
+    private UserResponseDto toResponseDto(UserEntity user) {
+        return UserResponseDto.builder()
+                .userId(user.getUserId())
+                .firstName(user.getFirstName())
+                .middleName(user.getMiddleName())
+                .lastName(user.getLastName())
+                .email(user.getEmail())
+                .phoneNumber(user.getPhoneNumber())
+                .countryCode(user.getCountryCode())
+                .isActive(user.getIsActive())
+                .language(user.getLanguage())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .build();
     }
 }
