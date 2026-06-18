@@ -6,7 +6,7 @@ import com.furqan.ecommerce.dto.UserResponseDto;
 import com.furqan.ecommerce.entity.UserEntity;
 
 import com.furqan.ecommerce.exception.UserAlreadyExistsException;
-import com.furqan.ecommerce.repository.UserRepository;
+import com.furqan.ecommerce.repository.IUserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,7 +15,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class UserService {
-    private final UserRepository userRepository;
+    private final IUserRepository userRepository;
 
     public List<UserEntity> getAllUsers() {
         return userRepository.findAll();
@@ -57,9 +57,51 @@ public class UserService {
         UserEntity userEntity = userRepository
                 .findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("user not found with id: "+id));
+                        new RuntimeException("user not found with id: " + id));
         userEntity.setIsActive(requestedIsActive);
         userRepository.save(userEntity);
+    }
+
+    public UserResponseDto updateUserDetails(Long id, UserRequestDto userRequestDto) {
+        if (id == null) {
+            throw new IllegalArgumentException("user_id is required");
+        }
+        UserEntity user = userRepository
+                .findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException("user not found with id: " + id));
+
+        if (userRequestDto.getEmail() != null && !userRequestDto.getEmail().equals(user.getEmail())) {
+            if (userRepository.existsByEmail(userRequestDto.getEmail())) {
+                throw new UserAlreadyExistsException("user already exists with email : " + userRequestDto.getEmail());
+            }
+            throw new UserAlreadyExistsException(
+                    "user already exists with email : " + userRequestDto.getEmail());
+        }
+        user.setEmail(userRequestDto.getEmail());
+
+        if (userRequestDto.getFirstName() != null) {
+            user.setFirstName(userRequestDto.getFirstName());
+        }
+        if (userRequestDto.getMiddleName() != null) {
+            user.setMiddleName(userRequestDto.getMiddleName());
+        }
+        if (userRequestDto.getLastName() != null) {
+            user.setLastName(userRequestDto.getLastName());
+        }
+        if (userRequestDto.getPassword() != null && !userRequestDto.getPassword().isBlank()) {
+            user.setPassword(userRequestDto.getPassword()); // hash when you add security
+        }
+        if (userRequestDto.getPhoneNumber() != null) {
+            user.setPhoneNumber(userRequestDto.getPhoneNumber());
+        }
+        if (userRequestDto.getCountryCode() != null) {
+            user.setCountryCode(userRequestDto.getCountryCode());
+        }
+        if (userRequestDto.getLanguage() != null) {
+            user.setLanguage(userRequestDto.getLanguage());
+        }
+        return toResponseDto(userRepository.save(user));
     }
 
     private UserResponseDto toResponseDto(UserEntity user) {

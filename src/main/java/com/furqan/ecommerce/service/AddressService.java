@@ -3,8 +3,7 @@ package com.furqan.ecommerce.service;
 import com.furqan.ecommerce.dto.AddressRequestDto;
 import com.furqan.ecommerce.dto.AddressResponseDto;
 import com.furqan.ecommerce.entity.AddressEntity;
-import com.furqan.ecommerce.entity.UserEntity;
-import com.furqan.ecommerce.repository.AddressRepository;
+import com.furqan.ecommerce.repository.IAddressRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -13,7 +12,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class AddressService {
-    private final AddressRepository addressRepository;
+    private final IAddressRepository addressRepository;
 
     public List<AddressEntity> getAllAddresses() {
         return addressRepository.findAll();
@@ -46,7 +45,7 @@ public class AddressService {
         addressRepository.deleteById(addressId);
     }
 
-    public AddressResponseDto updateAddress(AddressRequestDto addressRequestDto) {
+    public AddressResponseDto updateAddress( Long addressId,AddressRequestDto addressRequestDto) {
         if (addressRequestDto.getAddressId() == null) {
             throw new RuntimeException("address_id is required to update address");
         }
