@@ -47,8 +47,6 @@ CREATE TABLE addresses (
 CREATE INDEX idx_addresses_user_id
 ON addresses(user_id);
 
-
-
 -- Insert address query
 INSERT INTO addresses (
     address_line_1,
@@ -71,13 +69,31 @@ VALUES (
     1
 );
 
--- Create Products Table
-CREATE TABLE products (
-    id BIGSERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
+
+-- Create Categories
+
+CREATE TABLE categories (
+    category_id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
     description TEXT,
-    price DECIMAL(10,2) NOT NULL,
-    stock_quantity INT NOT NULL,
     created_at TIMESTAMP(0) DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP(0) DEFAULT CURRENT_TIMESTAMP
 );
+
+
+-- Create Products Table
+
+CREATE TABLE products (
+    product_id BIGSERIAL PRIMARY KEY,
+    category_id BIGINT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    price DECIMAL(10, 2) NOT NULL,
+    stock_quantity INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP(0) DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(0) DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_product_category
+        FOREIGN KEY (category_id)
+        REFERENCES categories(category_id)
+);
+CREATE INDEX idx_products_category_id ON products(category_id);

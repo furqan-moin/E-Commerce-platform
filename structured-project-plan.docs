@@ -76,7 +76,7 @@ Phase 2: Database Design
 
 Design tables manually.
 
-User
+-------
 users
 ------
 id
@@ -86,6 +86,8 @@ password
 role
 created_at
 Product
+
+---------
 products
 ---------
 id
@@ -95,16 +97,24 @@ price
 stock
 category_id
 Category
+
+-----------
 categories
 -----------
 id
 name
 Cart
+
+
+-----------
 cart
 ----
 id
 user_id
 Cart Item
+
+
+-----------
 cart_items
 -----------
 id
@@ -112,6 +122,8 @@ cart_id
 product_id
 quantity
 Order
+
+-----------
 orders
 -------
 id
@@ -120,6 +132,8 @@ status
 total_amount
 created_at
 Order Item
+
+-----------
 order_items
 ------------
 id

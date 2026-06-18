@@ -41,7 +41,7 @@ public class AddressController {
 
     @PatchMapping("/updateAddress")
     public AddressResponseDto updateAddress(@Valid @RequestBody AddressRequestDto addressRequestDto) {
-        return addressService.updateAddress(addressRequestDto);
+        return addressService.updateAddress(addressRequestDto.getAddressId(), addressRequestDto);
     }
 
 }
