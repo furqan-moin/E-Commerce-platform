@@ -1,7 +1,7 @@
 package com.furqan.ecommerce.service;
 
-import com.furqan.ecommerce.dto.AddressRequestDto;
-import com.furqan.ecommerce.dto.AddressResponseDto;
+import com.furqan.ecommerce.dto.address.AddressRequestDto;
+import com.furqan.ecommerce.dto.address.AddressResponseDto;
 import com.furqan.ecommerce.entity.AddressEntity;
 import com.furqan.ecommerce.repository.IAddressRepository;
 import lombok.RequiredArgsConstructor;

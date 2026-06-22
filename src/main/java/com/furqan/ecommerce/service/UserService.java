@@ -1,11 +1,11 @@
 package com.furqan.ecommerce.service;
 
 
-import com.furqan.ecommerce.dto.UserRequestDto;
-import com.furqan.ecommerce.dto.UserResponseDto;
+import com.furqan.ecommerce.dto.user.UserRequestDto;
+import com.furqan.ecommerce.dto.user.UserResponseDto;
 import com.furqan.ecommerce.entity.UserEntity;
-
 import com.furqan.ecommerce.exception.UserAlreadyExistsException;
+import com.furqan.ecommerce.exception.UserNotFoundException;
 import com.furqan.ecommerce.repository.IUserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,8 +17,8 @@ import java.util.List;
 public class UserService {
     private final IUserRepository userRepository;
 
-    public List<UserEntity> getAllUsers() {
-        return userRepository.findAll();
+    public List<UserResponseDto> getAllUsers() {
+        return userRepository.findAll().stream().map(this::toResponseDto).toList();
     }
 
     public UserResponseDto createUser(UserRequestDto userRequestDto) {
@@ -44,9 +44,10 @@ public class UserService {
         return toResponseDto(savedUser);
     }
 
-    public UserEntity getUserById(Long userId) {
-        return userRepository.findById(userId).orElseThrow(() ->
-                new RuntimeException("User not found!"));
+    public UserResponseDto getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .map(this::toResponseDto)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
     }
 
     public void deleteUserById(Long id) {
@@ -56,8 +57,7 @@ public class UserService {
     public void updateUserStatus(Long id, boolean requestedIsActive) {
         UserEntity userEntity = userRepository
                 .findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("user not found with id: " + id));
+                .orElseThrow(() -> new UserNotFoundException("user not found with id: " + id));
         userEntity.setIsActive(requestedIsActive);
         userRepository.save(userEntity);
     }
@@ -68,17 +68,16 @@ public class UserService {
         }
         UserEntity user = userRepository
                 .findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("user not found with id: " + id));
+                .orElseThrow(() -> new UserNotFoundException("user not found with id: " + id));
 
-        if (userRequestDto.getEmail() != null && !userRequestDto.getEmail().equals(user.getEmail())) {
+        if (userRequestDto.getEmail() != null
+                && !userRequestDto.getEmail().equals(user.getEmail())) {
             if (userRepository.existsByEmail(userRequestDto.getEmail())) {
-                throw new UserAlreadyExistsException("user already exists with email : " + userRequestDto.getEmail());
+                throw new UserAlreadyExistsException(
+                        "user already exists with email : " + userRequestDto.getEmail());
             }
-            throw new UserAlreadyExistsException(
-                    "user already exists with email : " + userRequestDto.getEmail());
+            user.setEmail(userRequestDto.getEmail());
         }
-        user.setEmail(userRequestDto.getEmail());
 
         if (userRequestDto.getFirstName() != null) {
             user.setFirstName(userRequestDto.getFirstName());
@@ -90,7 +89,7 @@ public class UserService {
             user.setLastName(userRequestDto.getLastName());
         }
         if (userRequestDto.getPassword() != null && !userRequestDto.getPassword().isBlank()) {
-            user.setPassword(userRequestDto.getPassword()); // hash when you add security
+            user.setPassword(userRequestDto.getPassword());
         }
         if (userRequestDto.getPhoneNumber() != null) {
             user.setPhoneNumber(userRequestDto.getPhoneNumber());

@@ -1,7 +1,7 @@
 package com.furqan.ecommerce.service;
 
-import com.furqan.ecommerce.dto.CategoryRequestDto;
-import com.furqan.ecommerce.dto.CategoryResponseDto;
+import com.furqan.ecommerce.dto.category.CategoryRequestDto;
+import com.furqan.ecommerce.dto.category.CategoryResponseDto;
 import com.furqan.ecommerce.entity.CategoryEntity;
 import com.furqan.ecommerce.repository.ICategoryRepository;
 import lombok.RequiredArgsConstructor;

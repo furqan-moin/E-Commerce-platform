@@ -1,7 +1,6 @@
-package com.furqan.ecommerce.dto;
+package com.furqan.ecommerce.dto.user;
 
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data

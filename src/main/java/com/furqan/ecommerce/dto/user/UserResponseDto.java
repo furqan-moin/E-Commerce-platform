@@ -1,5 +1,6 @@
-package com.furqan.ecommerce.dto;
+package com.furqan.ecommerce.dto.user;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Builder;
 import lombok.Data;
 
@@ -17,6 +18,8 @@ public class UserResponseDto {
     private String countryCode;
     private Boolean isActive;
     private String language;
+    @JsonFormat(pattern = "yyyy-MM-dd' 'HH:mm:ss")
     private LocalDateTime createdAt;
+    @JsonFormat(pattern = "yyyy-MM-dd' 'HH:mm:ss")
     private LocalDateTime updatedAt;
 }
