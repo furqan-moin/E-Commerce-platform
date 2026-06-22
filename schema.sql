@@ -1,3 +1,30 @@
+
+users
+│
+├── addresses
+│
+├── cart
+│    │
+│    └── cart_items
+│          │
+│          └── products
+│
+└── orders
+     │
+     ├── order_items
+     │     │
+     │     └── products
+     │
+     ├── shipping_address_id
+     │     └── addresses
+     │
+     └── billing_address_id
+           └── addresses
+
+categories
+    │
+    └── products
+
 -- =====================================================
 -- USERS
 -- =====================================================

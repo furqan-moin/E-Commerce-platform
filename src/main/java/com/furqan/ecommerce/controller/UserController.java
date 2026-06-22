@@ -1,10 +1,9 @@
 package com.furqan.ecommerce.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.furqan.ecommerce.dto.ApiResponse;
-import com.furqan.ecommerce.dto.UserRequestDto;
-import com.furqan.ecommerce.dto.UserResponseDto;
-import com.furqan.ecommerce.entity.UserEntity;
+import com.furqan.ecommerce.dto.common.ApiResponse;
+import com.furqan.ecommerce.dto.user.UserRequestDto;
+import com.furqan.ecommerce.dto.user.UserResponseDto;
 import com.furqan.ecommerce.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,12 +23,12 @@ public class UserController {
 
 
     @GetMapping("/all")
-    public List<UserEntity> getAllUsers() {
+    public List<UserResponseDto> getAllUsers() {
         return userService.getAllUsers();
     }
 
     @GetMapping("/user")
-    public UserEntity getUserById(@RequestHeader("user_id") Long id) {
+    public UserResponseDto getUserById(@RequestHeader("user_id") Long id) {
         return userService.getUserById(id);
     }
 

@@ -1,8 +1,9 @@
 package com.furqan.ecommerce.controller;
 
 
-import com.furqan.ecommerce.dto.*;
-import com.furqan.ecommerce.entity.AddressEntity;
+import com.furqan.ecommerce.dto.category.CategoryRequestDto;
+import com.furqan.ecommerce.dto.category.CategoryResponseDto;
+import com.furqan.ecommerce.dto.common.ApiResponse;
 import com.furqan.ecommerce.entity.CategoryEntity;
 import com.furqan.ecommerce.service.CategoryService;
 import jakarta.validation.Valid;
@@ -34,11 +35,24 @@ public class CategoryController {
         return categoryService.createCategory(categoryRequestDto);
     }
 
-    @DeleteMapping("/deleteCategory")
+    @DeleteMapping("/deleteCategoryById")
     public ResponseEntity<ApiResponse> deleteCategoryById(@RequestHeader("category_id") Long id) {
         categoryService.deleteCategoryById(id);
         return ResponseEntity.ok(ApiResponse.builder()
-                .message("Address deleted successfully")
+                .message("Category deleted successfully")
+                .build());
+    }
+
+    @GetMapping("/getCategory")
+    public CategoryResponseDto getCategoryByName(@RequestHeader("category_name") String name) {
+        return categoryService.getCategoryByName(name);
+    }
+
+    @DeleteMapping("/deleteCategoryByName")
+    public ResponseEntity<ApiResponse> deleteCategoryByName(@RequestHeader("category_name") String name) {
+        categoryService.deleteCategoryByName(name);
+        return ResponseEntity.ok(ApiResponse.builder()
+                .message("Category deleted successfully")
                 .build());
     }
 

@@ -1,7 +1,7 @@
 package com.furqan.ecommerce.impl;
 
-import com.furqan.ecommerce.dto.UserRequestDto;
-import com.furqan.ecommerce.dto.UserResponseDto;
+import com.furqan.ecommerce.dto.user.UserRequestDto;
+import com.furqan.ecommerce.dto.user.UserResponseDto;
 
 import java.util.List;
 

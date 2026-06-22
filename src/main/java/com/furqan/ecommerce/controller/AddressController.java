@@ -1,6 +1,8 @@
 package com.furqan.ecommerce.controller;
 
-import com.furqan.ecommerce.dto.*;
+import com.furqan.ecommerce.dto.address.AddressRequestDto;
+import com.furqan.ecommerce.dto.address.AddressResponseDto;
+import com.furqan.ecommerce.dto.common.ApiResponse;
 import com.furqan.ecommerce.entity.AddressEntity;
 import com.furqan.ecommerce.service.AddressService;
 import jakarta.validation.Valid;
@@ -44,4 +46,8 @@ public class AddressController {
         return addressService.updateAddress(addressRequestDto.getAddressId(), addressRequestDto);
     }
 
+    @GetMapping("/userAddress")
+    public List<AddressResponseDto> getAddressesByUserId(@RequestHeader("user_id") Long userId) {
+        return addressService.getAddressesByUserId(userId);
+    }
 }

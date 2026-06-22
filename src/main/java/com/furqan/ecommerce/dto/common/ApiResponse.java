@@ -1,4 +1,4 @@
-package com.furqan.ecommerce.dto;
+package com.furqan.ecommerce.dto.common;
 
 
 import lombok.Builder;

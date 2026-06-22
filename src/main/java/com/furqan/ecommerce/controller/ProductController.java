@@ -1,11 +1,11 @@
 package com.furqan.ecommerce.controller;
 
 
-import com.furqan.ecommerce.dto.ApiResponse;
-import com.furqan.ecommerce.dto.ProductRequestDto;
-import com.furqan.ecommerce.dto.ProductResponseDto;
-import com.furqan.ecommerce.entity.ProductEntity;
+import com.furqan.ecommerce.dto.common.ApiResponse;
+import com.furqan.ecommerce.dto.product.ProductRequestDto;
+import com.furqan.ecommerce.dto.product.ProductResponseDto;
 import com.furqan.ecommerce.service.ProductService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,22 +20,22 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping("/all")
-    public List<ProductEntity> getAllProducts() {
+    public List<ProductResponseDto> getAllProducts() {
         return productService.getAllProducts();
     }
 
     @GetMapping("/productId")
-    public ProductResponseDto getProductById(Long id) {
+    public ProductResponseDto getProductById(@RequestHeader("product_id") Long id) {
         return productService.getProductById(id);
     }
 
-    @PostMapping("/createProduct")
-    public ProductResponseDto createProduct(@RequestBody ProductRequestDto productRequestDto) {
-        return productService.createProduct(productRequestDto);
+    @PostMapping("/addProduct")
+    public ProductResponseDto addProduct(@Valid @RequestBody ProductRequestDto productRequestDto) {
+        return productService.addProduct(productRequestDto);
     }
 
-    @DeleteMapping("/{productId}")
-    public ResponseEntity<ApiResponse> deleteProduct(@RequestBody Long productId) {
+    @DeleteMapping("/productId")
+    public ResponseEntity<ApiResponse> deleteProduct(@Valid @RequestHeader("product_id") Long productId) {
         productService.deleteProduct(productId);
         return ResponseEntity.ok(ApiResponse.builder()
                 .message("Product deleted successfully")
@@ -47,13 +47,14 @@ public class ProductController {
         return productService.getProductByName(name);
     }
 
-    @GetMapping("'productsByCategoryId")
+    @GetMapping("/productsByCategoryId")
     public List<ProductResponseDto> getProductsByCategoryId(@RequestParam Long categoryId) {
-        return productService.getProuctsByCategoryId(categoryId);
+        return productService.getProductsByCategoryId(categoryId);
     }
 
     @PatchMapping("/updateProduct")
-    public ProductResponseDto updateProduct(@RequestBody ProductRequestDto productRequestDto) {
+    public ProductResponseDto updateProduct(@Valid @RequestBody ProductRequestDto productRequestDto) {
         return productService.updateProduct(productRequestDto.getProductId(), productRequestDto);
     }
+
 }

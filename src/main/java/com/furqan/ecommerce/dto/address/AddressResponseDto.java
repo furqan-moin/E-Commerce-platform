@@ -1,4 +1,4 @@
-package com.furqan.ecommerce.dto;
+package com.furqan.ecommerce.dto.address;
 
 import com.furqan.ecommerce.enums.AddressType;
 import lombok.Builder;
