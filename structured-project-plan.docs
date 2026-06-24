@@ -1,497 +1,485 @@
-Phase 0: Prerequisites (1-2 Weeks)
+E-Commerce Platform — Structured Project Plan
+Last updated: June 2026
+Branch: shopping-module
 
-Before starting, make sure you're comfortable with:
+Companion doc: FEATURE_ROADMAP.md (detailed APIs, DDL, file checklists, business rules)
 
-Java 21
-OOP Concepts
-Collections Framework
-Streams API
-Exception Handling
-Multithreading Basics
-JDBC
-SQL
+API style (current):  Legacy verb-in-path + header-based IDs (user_id, product_id)
+API style (target):   RESTful paths with path variables
+Auth (target):        JWT + Spring Security before production orders
 
-Practice:
+================================================================================
+IMPLEMENTATION STATUS OVERVIEW
+================================================================================
 
-CRUD APIs
-File handling
-Java Records
-Functional Programming
+DONE              PARTIAL             NOT STARTED
+-----             -------             -----------
+Foundation        Exception           Orders / Checkout
+Users             Handling            Authentication (JWT)
+Addresses                             Payment
+Categories                            Swagger / OpenAPI
+Products                              Testing
+Cart                                  Docker
+DB Schema                             Redis
+                                      Kafka
+                                      Microservices
+                                      AWS / CI-CD
 
-Phase 1: Setup the Foundation
+Module status (synced with FEATURE_ROADMAP.md):
+  Users           ✅  UserController, UserService
+  Addresses       ✅  AddressController, AddressService
+  Categories      ✅  CategoryController, CategoryService
+  Products        ✅  ProductController, ProductService
+  Cart            ✅  CartController, CartService (polish remaining)
+  Orders          ⬜  DDL in schema.sql only
+  Auth            ⬜  Not started
+  Exceptions      🔄  Partial — RuntimeException still in category/address services
 
-Tech Stack
+================================================================================
+PHASE MAPPING (this doc ↔ FEATURE_ROADMAP.md)
+================================================================================
 
-Backend:
+This doc (learning path)     FEATURE_ROADMAP.md          Status
+------------------------     ------------------          ------
+Phase 0  Prerequisites       —                           ✅ Done
+Phase 1  Foundation          —                           ✅ Done
+Phase 2  Database Design     —                           ✅ Done
+         —                   Phase 0  Foundation fixes    🔄 In progress
+         —                   Phase 1  Categories+Products ✅ Done
+Phase 3  Auth                Phase 2  JWT + Security      ⬜ Next
+Phase 4  Cart                Phase 3  Cart + Cart Items   ✅ Done (polish)
+Phase 5  Orders              Phase 4  Orders + Checkout   ⬜ Coming
+Phase 6  Exception Handling  (part of Phase 0)           🔄 In progress
+Phase 7  API Docs            Phase 5  Cross-cutting       ⬜ Not started
+Phase 8  Testing             Phase 5  Cross-cutting       ⬜ Not started
+Phase 9–17 Advanced          Out of scope in roadmap     ⬜ Future
 
-Java 21
-Spring Boot 3.x
-Maven
-Spring Data JPA
-PostgreSQL
-Lombok
-Validation API
+================================================================================
+PHASE 0: PREREQUISITES (1–2 Weeks)
+================================================================================
+Status: ✅ COMPLETE
 
-Tools:
+Comfortable with:
+- Java 21, OOP, Collections, Streams, Exception Handling
+- JDBC, SQL, CRUD APIs, Validation API
 
-IntelliJ IDEA
-Postman
-Docker
-Git
-GitHub
+================================================================================
+PHASE 1: SETUP THE FOUNDATION
+================================================================================
+Status: ✅ COMPLETE
 
-Project Structure:
+Tech stack in use:
+- Java 21, Spring Boot 3.x, Maven
+- Spring Data JPA, PostgreSQL, Lombok, Validation API
+- IntelliJ, Postman, Git, GitHub
 
-ecommerce
- ├── controller
- ├── service
- ├── repository
- ├── entity
- ├── dto
- ├── mapper
- ├── exception
- ├── config
- └── util
+Project structure (actual):
+  ecommerce/
+   ├── controller/     User, Address, Category, Product, Cart, Health
+   ├── service/        User, Address, Category, Product, Cart
+   ├── repository/     IUser, IAddress, ICategory, IProduct, ICart, ICartItem
+   ├── entity/         User, Address, Category, Product, Cart, CartItem
+   ├── dto/            user, address, category, product, cart, common
+   ├── exception/      GlobalExceptionHandler + domain exceptions
+   ├── configs/        EndpointPrinter, StartupSummaryPrinter
+   └── enums/          AddressType
 
-Learn:
+Branches merged into shopping-module:
+- Setup-the-Foundation  → users, base project
+- address-module        → addresses
+- product-module        → categories + products
+- shopping-module       → cart schema + cart Java
 
-Spring Boot Basics
-Dependency Injection
-Bean Lifecycle
-REST APIs
-JPA & Hibernate
-DTO Pattern
+Base URL: /ecommerce/v1
+
+Patterns in use:
+- Lombok entities and DTOs
+- @Service + @RequiredArgsConstructor injection
+- JpaRepository with derived query methods
+- Inline toResponseDto() mapping in services
+- GlobalExceptionHandler for domain exceptions
+
+Learn (completed):
+- Spring Boot Basics, Dependency Injection, Bean Lifecycle
+- REST APIs, JPA & Hibernate, DTO Pattern
+
+================================================================================
+PHASE 2: DATABASE DESIGN
+================================================================================
+Status: ✅ COMPLETE (schema.sql)
+
+Tables — DDL + seed data:
+  users           ✅  → UserEntity
+  addresses       ✅  → AddressEntity       (FK → users)
+  categories      ✅  → CategoryEntity
+  products        ✅  → ProductEntity      (FK → categories)
+  cart            ✅  → CartEntity         (UNIQUE user_id, FK → users)
+  cart_items      ✅  → CartItemEntity     (FK → cart, products)
+  orders          ✅  DDL only              (order_number, payment_status, address FKs)
+  order_items     ✅  DDL only              (price snapshot at checkout)
+
+JPA entities missing: OrderEntity, OrderItemEntity
+Relationships: Long FK columns (not @ManyToOne mappings yet)
+
+Learn (completed):
+- OneToMany, ManyToOne via FK design, constraints, indexes
+
+================================================================================
+MODULE-BY-MODULE — IMPLEMENTED APIs (actual paths)
+================================================================================
+
+USERS  ✅  /ecommerce/v1/users
+  POST   /createUser
+  GET    /all, /user              (header: user_id)
+  PATCH  /updateUser, /isActive
+  DELETE /deleteUser              (header: user_id)
+  Exceptions: UserNotFoundException, UserAlreadyExistsException
+
+ADDRESSES  ✅  /ecommerce/v1/addresses
+  POST   /createAddress
+  GET    /all, /addressId, /userAddress
+  PATCH  /updateAddress
+  DELETE /deleteAddress
+  Enum: AddressType (SHIPPING, BILLING, OFFICE, HOME, OTHER)
+
+CATEGORIES  ✅  /ecommerce/v1/categories
+  POST   /createCategory
+  GET    /all, /categoryId, /getCategory
+  PATCH  /updateCategory
+  DELETE /deleteCategoryById, /deleteCategoryByName
+
+PRODUCTS  ✅  /ecommerce/v1/products
+  POST   /addProduct
+  GET    /all, /productId, /productByName, /productsByCategoryId
+  PATCH  /updateProduct
+  DELETE /productId                (header: product_id)
+  Category validation on add / update / list-by-category
+  Exceptions: ProductNotFoundException, CategoryNotFoundException
+
+CART  ✅  /ecommerce/v1/cart
+  POST   /createCart, /addItem
+  GET    /getCart                  (header: user_id)
+  PATCH  /updateQuantity
+  DELETE /removeItem
+  Rules: one cart per user, stock checks, merge duplicates, computed totals
+  Exceptions: CartNotFoundException, CartItemNotFoundException, OutOfStockException
+
+HEALTH  ✅
+  GET    /                         → welcome message
+
+================================================================================
+FOUNDATION FIXES (FEATURE_ROADMAP Phase 0)
+================================================================================
+Status: 🔄 IN PROGRESS — do before Orders
+
+Done:
+  [x] GlobalExceptionHandler for user, product, category, cart exceptions
+  [x] ProductNotFoundException, CategoryNotFoundException with messages
+  [x] UserNotFoundException, UserAlreadyExistsException
+  [x] CartNotFoundException, CartItemNotFoundException, OutOfStockException
+  [x] UserService.getUserById returns DTO; email update bug fixed
+  [x] AddressController.getAddressesByUserId calls addressService
+  [x] Product module returns DTOs; category validation on add/update
+  [x] CategoryController duplicate DELETE mapping fixed
+
+High priority (remaining):
+  [ ] UserController.updateUser — DTO + @Valid (not raw Map)
+  [ ] UserRequestDto — @NotNull on required create fields
+  [ ] AddressRequestDto — align NOT NULL with DB (city, state, pinCode, country)
+  [ ] AddressService.createAddress — validate user exists
+  [ ] AddressService.getAddressesByUserId — return [] when empty
+  [ ] ProductService.addProduct — default stockQuantity to 0 if null
+  [ ] deleteUser / deleteProduct / deleteCategory — FK-safe or 409 errors
+
+Medium priority (remaining):
+  [ ] Return DTOs from Category/Address GET /all (still return entities)
+  [ ] ProductRequestDto.productId @NotNull for update
+  [ ] Remove duplicate dto/cartItem/ package
+  [ ] AddressNotFoundException + handler
+  [ ] Replace RuntimeException in CategoryService, AddressService
+  [ ] Handler for DataIntegrityViolationException (FK failures → 409)
+
+================================================================================
+PHASE 3: AUTHENTICATION & AUTHORIZATION (FEATURE_ROADMAP Phase 2)
+================================================================================
+Status: ⬜ NOT STARTED — NEXT PRIORITY
+
+Add to pom.xml:
+  spring-boot-starter-security
+  jjwt-api / jjwt-impl / jjwt-jackson (0.12.6)
+
+Implement:
+  POST /ecommerce/v1/auth/register
+  POST /ecommerce/v1/auth/login
 
 Build:
-
-Product APIs
-
-POST /products
-GET /products
-GET /products/{id}
-PUT /products/{id}
-DELETE /products/{id}
-
-Phase 2: Database Design
-
-Design tables manually.
-
--------
-users
-------
-id
-name
-email
-password
-role
-created_at
-Product
-
----------
-products
----------
-id
-name
-description
-price
-stock
-category_id
-Category
-
------------
-categories
------------
-id
-name
-Cart
-
-
------------
-cart
-----
-id
-user_id
-Cart Item
-
-
------------
-cart_items
------------
-id
-cart_id
-product_id
-quantity
-Order
-
------------
-orders
--------
-id
-user_id
-status
-total_amount
-created_at
-Order Item
-
------------
-order_items
-------------
-id
-order_id
-product_id
-quantity
-price
-
-Learn:
-
-OneToMany
-ManyToOne
-Cascade Types
-Lazy Loading
-Eager Loading
-
-Phase 3: Authentication & Authorization
-
-Add:
-
-spring-boot-starter-security
-
-Learn:
-
-JWT
-Spring Security
-Authentication
-Authorization
-Filters
-Password Encryption
-
-Implement:
-
-/register
-/login
+  [ ] UserRole enum + role column on users
+  [ ] SecurityConfig, JwtUtil, JwtAuthFilter
+  [ ] AuthController, AuthService
+  [ ] BCrypt password hashing (replace plain text)
+  [ ] Protect endpoints: ADMIN for catalog writes, JWT for cart/orders
 
 Roles:
-
-ADMIN
-CUSTOMER
-
-Admin can:
-
-Add Product
-Update Product
-Delete Product
-
-Customer can:
-
-View Products
-Place Orders
-
-Phase 4: Cart Module
-
-Implement:
-
-Add to Cart
-Remove from Cart
-Update Quantity
-View Cart
-
-Endpoints:
-
-POST /cart/items
-PUT /cart/items/{id}
-DELETE /cart/items/{id}
-GET /cart
+  ADMIN    → manage products, categories
+  CUSTOMER → browse, cart, orders, own profile
 
 Learn:
+- JWT, Spring Security, Authentication, Authorization, Filters, Password Encryption
 
-Transactions
-Service Layer
-Validation
+================================================================================
+PHASE 4: CART MODULE (FEATURE_ROADMAP Phase 3)
+================================================================================
+Status: ✅ CORE DONE — polish remaining
 
-Phase 5: Order Management
+Implemented (actual paths):
+  POST   /cart/createCart
+  POST   /cart/addItem
+  GET    /cart/getCart
+  PATCH  /cart/updateQuantity
+  DELETE /cart/removeItem
+
+Target paths (after REST + JWT migration):
+  GET    /cart/
+  POST   /cart/items
+  PUT    /cart/items/{cartItemId}
+  DELETE /cart/items/{cartItemId}
+  DELETE /cart/                      (clear cart)
+
+Remaining polish:
+  [ ] POST /cart/clearCart
+  [ ] getCart auto-create empty cart (consistent with addItem)
+  [ ] Cart item ownership validation on remove/update
+  [ ] createCart response — include isActive, timestamps
+  [ ] Resolve userId from JWT principal (after Phase 3 Auth)
+
+Learn (completed):
+- Transactions, Service Layer, Validation
+
+================================================================================
+PHASE 5: ORDER MANAGEMENT (FEATURE_ROADMAP Phase 4)
+================================================================================
+Status: ⬜ NOT STARTED — after Auth + foundation polish
+
+Schema ready in schema.sql:
+  orders       (order_number, status, payment_status, total_amount, address FKs)
+  order_items  (quantity, price snapshot)
 
 Flow:
+  Add Product → Add To Cart → Checkout → Create Order → Reduce Inventory
 
-Add Product
-↓
-Add To Cart
-↓
-Checkout
-↓
-Create Order
-↓
-Reduce Inventory
-↓
-Generate Invoice
+Build:
+  [ ] OrderEntity, OrderItemEntity
+  [ ] OrderStatus enum (CREATED, CONFIRMED, SHIPPED, CANCELLED, etc.)
+  [ ] IOrderRepository, IOrderItemRepository
+  [ ] OrderService.checkout(userId, shippingAddressId, billingAddressId)
+  [ ] OrderController — checkout, list, detail, cancel
+  [ ] @Transactional checkout (cart → order, decrement stock, clear cart)
+  [ ] OrderNotFoundException, InvalidOrderStateException
 
-Learn:
+Endpoints (planned):
+  POST   /orders/checkout
+  GET    /orders
+  GET    /orders/{orderId}
+  PATCH  /orders/{orderId}/cancel
 
-@Transactional
-
-Important concepts:
-
-ACID
-Rollback
-Concurrency
-
-Phase 6: Exception Handling
-
-Create:
-
-ProductNotFoundException
-UserNotFoundException
-OutOfStockException
-
-Global Exception Handler:
-
-@RestControllerAdvice
+Checkout business rules (@Transactional):
+  1. Validate cart not empty
+  2. Validate shipping address belongs to user
+  3. Re-check stock for every cart item
+  4. Create orders row; create order_items with price snapshot
+  5. Decrement stock_quantity; clear cart items
+  6. Roll back on any failure
 
 Learn:
+- @Transactional, ACID, Rollback, Concurrency
+
+================================================================================
+PHASE 6: EXCEPTION HANDLING
+================================================================================
+Status: 🔄 PARTIAL (overlaps Foundation Fixes above)
 
-Custom Exceptions
-Error Response Design
+Done:
+  @RestControllerAdvice GlobalExceptionHandler
+  User, Product, Category, Cart domain exceptions
+  MethodArgumentNotValidException → 400
+  IllegalArgumentException → 400
 
-Phase 7: API Documentation
+Remaining:
+  AddressNotFoundException + handler
+  DataIntegrityViolationException → 409
+  Replace RuntimeException in CategoryService, AddressService
 
-Add:
+Learn (partially completed):
+- Custom Exceptions, Error Response Design
 
-springdoc-openapi
+================================================================================
+PHASE 7: API DOCUMENTATION (FEATURE_ROADMAP Phase 5)
+================================================================================
+Status: ⬜ NOT STARTED
 
-Generate:
-
-Swagger UI
-
-Learn:
-
-OpenAPI
-API Versioning
-
-Phase 8: Testing
-
-Learn:
-
-JUnit 5
-Mockito
-Integration Testing
-TestContainers
-
-Write tests for:
-
-ProductService
-CartService
-OrderService
-
-Target:
-
-80%+ coverage
-
-Phase 9: Dockerization
-
-Create:
-
-Dockerfile
-docker-compose.yml
-
-Run:
-
-Spring Boot
-Postgres
-Redis
-
-Learn:
-
-Containers
-Networking
-Volumes
-
-Phase 10: Redis Caching
-
-Cache:
-
-Products
-Categories
-
-Learn:
-
-@Cacheable
-@CachePut
-@CacheEvict
-
-Architecture:
-
-Client
-  ↓
-Spring Boot
-  ↓
-Redis
-  ↓
-Postgres
-
-Phase 11: Async Processing
-
-Learn:
-
-@Async
-CompletableFuture
-
-Examples:
-
-Email Notifications
-Invoice Generation
-
-Phase 12: Event-Driven Architecture
-
-Add:
-
-Kafka
-
-Events:
-
-OrderCreated
-PaymentCompleted
-InventoryUpdated
-
-Learn:
-
-Producer
-Consumer
-Retry Topics
-DLQ
-
-This is highly relevant to your current Ola experience.
-
-Phase 13: Payment Integration
-
-Use Sandbox:
-
-Stripe
-
-Flow:
-
-Create Order
-↓
-Initiate Payment
-↓
-Payment Success
-↓
-Update Order Status
-
-Learn:
-
-Webhooks
-Idempotency
-
-Phase 14: Search Functionality
-
-Options:
-
-PostgreSQL Full Text Search
-Elasticsearch
-
-Search:
-
-/search?query=iphone
-
-Features:
-
-Filters
-Sorting
-Pagination
-
-Phase 15: Microservices Conversion
-
-Break monolith into:
-
-user-service
-product-service
-cart-service
-order-service
-payment-service
-notification-service
-
-Learn:
-
-Service Discovery
-API Gateway
-Config Server
-OpenFeign
-
-Phase 16: Cloud Deployment
-
-Deploy on:
-
-AWS EC2
-Docker
-Nginx
-
-Learn:
-
-CI/CD
-GitHub Actions
-
-Pipeline:
-
-Code Push
-↓
-Build
-↓
-Test
-↓
-Docker Build
-↓
-Deploy
-
-Phase 17: Production-Level Features
-
-Add:
-
-Rate Limiting
-Audit Logs
-Pagination
-Soft Delete
-Monitoring
-Health Checks
-Circuit Breaker
-
-Libraries:
-
-Micrometer
-Prometheus
-Grafana
-Resilience4j
-
-Suggested Learning Order (3-Month Roadmap)
-
-Week	Focus
-1	Spring Boot Fundamentals
-2	JPA + PostgreSQL
-3	Product CRUD
-4	User Management
-5	JWT Security
-6	Cart Module
-7	Order Module
-8	Testing
-9	Docker
-10	Redis
-11	Kafka
-12	AWS Deployment
-
-Portfolio Outcome
-
-By the end, you'll have a project demonstrating:
-
-Java 21
-Spring Boot 3
-PostgreSQL
-JPA/Hibernate
-JWT Authentication
-Spring Security
-Redis
-Kafka
-Docker
-AWS
-CI/CD
-Microservices
-System Design
-
-This is the kind of project that can strongly support applications for Backend Engineer/SDE-1 roles and provide talking points for both coding and system design interviews.
+  [ ] springdoc-openapi-starter-webmvc-ui (2.8.4)
+  [ ] Swagger UI at /swagger-ui.html
+  [ ] Document all /ecommerce/v1 endpoints
+
+Learn: OpenAPI, API Versioning
+
+================================================================================
+PHASE 8: TESTING (FEATURE_ROADMAP Phase 5)
+================================================================================
+Status: ⬜ NOT STARTED
+
+  [ ] JUnit 5 + Mockito: ProductService, CartService, OrderService
+  [ ] @SpringBootTest integration tests
+  [ ] TestContainers for PostgreSQL
+  Target: 80%+ service layer coverage
+
+Learn: JUnit 5, Mockito, Integration Testing, TestContainers
+
+================================================================================
+PHASE 9: DOCKERIZATION
+================================================================================
+Status: ⬜ NOT STARTED
+
+  [ ] Dockerfile
+  [ ] docker-compose.yml (Spring Boot + Postgres)
+
+Learn: Containers, Networking, Volumes
+
+================================================================================
+PHASE 10: REDIS CACHING
+================================================================================
+Status: ⬜ NOT STARTED
+
+Cache: Products, Categories
+Learn: @Cacheable, @CachePut, @CacheEvict
+
+================================================================================
+PHASE 11: ASYNC PROCESSING
+================================================================================
+Status: ⬜ NOT STARTED
+
+Learn: @Async, CompletableFuture
+Examples: Email notifications, invoice generation
+
+================================================================================
+PHASE 12: EVENT-DRIVEN ARCHITECTURE
+================================================================================
+Status: ⬜ NOT STARTED
+
+Add: Kafka
+Events: OrderCreated, PaymentCompleted, InventoryUpdated
+Learn: Producer, Consumer, Retry Topics, DLQ
+
+================================================================================
+PHASE 13: PAYMENT INTEGRATION
+================================================================================
+Status: ⬜ NOT STARTED
+
+Stripe sandbox: Create Order → Payment → Update status
+Learn: Webhooks, Idempotency
+
+================================================================================
+PHASE 14: SEARCH FUNCTIONALITY
+================================================================================
+Status: ⬜ NOT STARTED
+
+PostgreSQL FTS or Elasticsearch
+/search?query=iphone — filters, sorting, pagination
+
+================================================================================
+PHASE 15: MICROSERVICES CONVERSION
+================================================================================
+Status: ⬜ NOT STARTED
+
+user-service, product-service, cart-service, order-service,
+payment-service, notification-service
+
+Learn: Service Discovery, API Gateway, Config Server, OpenFeign
+
+================================================================================
+PHASE 16: CLOUD DEPLOYMENT
+================================================================================
+Status: ⬜ NOT STARTED
+
+AWS EC2, Docker, Nginx, GitHub Actions CI/CD
+
+================================================================================
+PHASE 17: PRODUCTION-LEVEL FEATURES
+================================================================================
+Status: ⬜ NOT STARTED
+
+Rate limiting, audit logs, pagination, soft delete, monitoring, circuit breaker
+Libraries: Micrometer, Prometheus, Grafana, Resilience4j
+
+================================================================================
+REVISED 3-MONTH ROADMAP (from current state)
+================================================================================
+
+Week  Focus                              Status
+----  -----                              ------
+1     Spring Boot + JPA foundation       ✅ Done
+2     Users + Addresses                  ✅ Done
+3     Categories + Products              ✅ Done
+4     Cart module                        ✅ Done (polish remaining)
+5     Exception handling + bug fixes     🔄 In progress
+6     JWT + Spring Security              ⬜ Next
+7     Orders + Checkout                  ⬜ Coming
+8     Testing (JUnit, Mockito)           ⬜ Coming
+9     Docker + docker-compose            ⬜ Coming
+10    Swagger / OpenAPI                  ⬜ Coming
+11    Redis caching                      ⬜ Future
+12    Kafka + AWS deployment             ⬜ Future
+
+================================================================================
+RECOMMENDED NEXT STEPS (synced with FEATURE_ROADMAP.md)
+================================================================================
+
+1. Foundation polish  — exceptions, address DTO validation, empty list behavior
+2. Auth (Phase 3)     — JWT, BCrypt, roles, protect write endpoints
+3. Cart polish        — clearCart, ownership checks, consistent getCart
+4. Orders (Phase 5)   — checkout with @Transactional
+5. Cross-cutting      — Swagger, tests, pagination
+
+================================================================================
+PORTFOLIO OUTCOME
+================================================================================
+
+Already demonstrates:
+  ✅ Java 21, Spring Boot 3, PostgreSQL, JPA/Hibernate
+  ✅ REST APIs, DTO pattern, Validation API, Lombok
+  ✅ Full shopping domain: users → addresses → catalog → cart
+  ✅ Custom exceptions + GlobalExceptionHandler
+  ✅ Transactional cart + stock validation
+
+Will demonstrate after next phases:
+  ⬜ JWT Authentication + Spring Security + roles
+  ⬜ Order checkout with @Transactional ACID flow
+  ⬜ Swagger, Docker, Tests
+  ⬜ Redis, Kafka, AWS (stretch goals)
+
+Supports Backend Engineer / SDE-1 applications with coding and system design
+talking points.
+
+================================================================================
+QUICK REFERENCE — WHAT EXISTS vs WHAT'S NEXT
+================================================================================
+
+EXISTS NOW:
+  Controllers:  User, Address, Category, Product, Cart, Health
+  Services:     User, Address, Category, Product, Cart
+  Entities:     User, Address, Category, Product, Cart, CartItem
+  Exceptions:   User, Product, Category, Cart-related + GlobalExceptionHandler
+  Enums:        AddressType
+
+COMING NEXT:
+  AuthController, AuthService, SecurityConfig, JwtUtil, JwtAuthFilter
+  OrderController, OrderService, OrderEntity, OrderItemEntity
+  UserRole, OrderStatus enums
+  OrderNotFoundException, InvalidOrderStateException, AddressNotFoundException
+
+See FEATURE_ROADMAP.md for:
+  - Full implemented vs target API tables
+  - Business rules (catalog, cart, checkout)
+  - Java file checklist per phase
+  - Package layout with ✅ / ⬜ per file
+  - pom.xml dependency snippets

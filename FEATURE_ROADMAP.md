@@ -1,10 +1,14 @@
 # Feature Roadmap
 
-Actionable implementation guide for upcoming e-commerce modules. Complements the broader learning path in [`structured-project-plan.docs`](structured-project-plan.docs).
+Actionable implementation guide for the e-commerce platform. Complements the broader learning path in [`structured-project-plan.docs`](structured-project-plan.docs).
 
-**API style:** RESTful paths with path variables  
-**Auth:** JWT + Spring Security before cart and orders  
+**Last updated:** June 2026  
+**Branch:** `shopping-module`  
 **Base URL prefix:** `/ecommerce/v1`
+
+**API style (current):** Legacy verb-in-path + header-based IDs (`user_id`, `product_id`)  
+**API style (target):** RESTful paths with path variables  
+**Auth (target):** JWT + Spring Security before production cart/orders
 
 ---
 
@@ -12,52 +16,58 @@ Actionable implementation guide for upcoming e-commerce modules. Complements the
 
 | Module | Status |
 |--------|--------|
-| Users | Implemented — `UserController`, `UserService` |
-| Addresses | Implemented — `AddressController`, `AddressService` |
-| Products | DDL only in `schema.sql` — no Java code |
-| Categories | Not started |
-| Cart / Cart Items | Not started |
-| Orders / Order Items | Not started |
-| Authentication | Not started |
+| Users | ✅ Implemented — `UserController`, `UserService` |
+| Addresses | ✅ Implemented — `AddressController`, `AddressService` |
+| Categories | ✅ Implemented — `CategoryController`, `CategoryService` |
+| Products | ✅ Implemented — `ProductController`, `ProductService` |
+| Cart / Cart Items | ✅ Implemented — `CartController`, `CartService` |
+| Orders / Order Items | ⬜ DDL in `schema.sql` only — no Java code |
+| Authentication | ⬜ Not started |
+| Exception handling | 🔄 Partial — domain exceptions for users, products, cart; `RuntimeException` still in category/address services |
 
-### Patterns to reuse
+### Patterns in use
 
 - Lombok entities and DTOs
 - `@Service` + `@RequiredArgsConstructor` constructor injection
-- `JpaRepository` with derived query methods
+- `JpaRepository` with derived query methods (`IUserRepository`, `IProductRepository`, etc.)
 - Inline `toResponseDto()` mapping in services
 - `GlobalExceptionHandler` for domain exceptions
+- DTO sub-packages: `dto/user`, `dto/address`, `dto/category`, `dto/product`, `dto/cart`, `dto/common`
 
-### Conventions to adopt for new modules
+### Conventions still to adopt
 
-- Return DTOs from controllers (not entities)
-- Use `ResourceNotFoundException` instead of raw `RuntimeException`
-- RESTful paths: `GET /products/{productId}` instead of header-based IDs
-- Align primary key naming: `productId`, `categoryId`, `orderId` (not bare `id`)
-- Add `category_id` foreign key on products
+- Return DTOs from all controllers (Category/Address `GET /all` still return entities)
+- Replace remaining `RuntimeException` with domain exceptions in Category/Address services
+- RESTful paths: `GET /products/{productId}` instead of header-based IDs (migration later)
+- BCrypt password hashing (passwords currently plain text)
+- JWT-based user identity instead of `user_id` header/body
 
 ---
 
 ## Implementation phases
 
-| Phase | Scope | Depends on |
-|-------|-------|------------|
-| **0** | Foundation fixes (exceptions, DTO-only responses) | — |
-| **1** | Categories + Products (catalog) | Users |
-| **2** | Authentication & roles (JWT, Spring Security) | Users |
-| **3** | Cart + Cart Items | Auth |
-| **4** | Orders + Order Items (checkout) | Cart, Products, Addresses |
-| **5** | Cross-cutting (pagination, OpenAPI, tests) | All above |
+| Phase | Scope | Status | Depends on |
+|-------|-------|--------|------------|
+| **0** | Foundation fixes (exceptions, DTO-only responses) | 🔄 In progress | — |
+| **1** | Categories + Products (catalog) | ✅ Done | Users |
+| **2** | Authentication & roles (JWT, Spring Security) | ⬜ Next | Users |
+| **3** | Cart + Cart Items | ✅ Done (polish remaining) | Users, Products |
+| **4** | Orders + Order Items (checkout) | ⬜ Coming | Cart, Products, Addresses |
+| **5** | Cross-cutting (pagination, OpenAPI, tests) | ⬜ Not started | All above |
 
 ```mermaid
 flowchart TD
     fix[Phase 0: Exception handling fixes]
-    cat[Phase 1a: Categories]
-    prod[Phase 1b: Products]
+    cat[Phase 1a: Categories ✅]
+    prod[Phase 1b: Products ✅]
     auth[Phase 2: JWT + Spring Security]
-    cart[Phase 3: Cart + Cart Items]
+    cart[Phase 3: Cart + Cart Items ✅]
     order[Phase 4: Orders + Checkout]
-    fix --> cat --> prod --> auth --> cart --> order
+    fix --> cat --> prod
+    prod --> cart
+    prod --> auth
+    auth --> order
+    cart --> order
 ```
 
 ---
@@ -80,7 +90,7 @@ erDiagram
         bigint user_id PK
         string email
         string password
-        string role
+        boolean is_active
     }
     categories {
         bigint category_id PK
@@ -97,6 +107,7 @@ erDiagram
     cart {
         bigint cart_id PK
         bigint user_id FK
+        boolean is_active
     }
     cart_items {
         bigint cart_item_id PK
@@ -116,130 +127,32 @@ erDiagram
         bigint order_id FK
         bigint product_id FK
         int quantity
-        decimal unit_price
+        decimal price
     }
 ```
+
+**JPA note:** Entities use `Long` FK columns (not `@ManyToOne` mappings) except where noted in guidance below.
 
 ---
 
 ## Database schema
 
-Add the following to [`schema.sql`](schema.sql).
+**Status:** ✅ All DDL present in [`schema.sql`](schema.sql) with seed data.
 
-### Categories
+| Table | DDL | JPA Entity |
+|-------|-----|------------|
+| `users` | ✅ | ✅ `UserEntity` |
+| `addresses` | ✅ | ✅ `AddressEntity` |
+| `categories` | ✅ | ✅ `CategoryEntity` |
+| `products` | ✅ | ✅ `ProductEntity` |
+| `cart` | ✅ | ✅ `CartEntity` |
+| `cart_items` | ✅ | ✅ `CartItemEntity` |
+| `orders` | ✅ | ⬜ Not created |
+| `order_items` | ✅ | ⬜ Not created |
 
-```sql
-CREATE TABLE categories (
-    category_id BIGSERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL UNIQUE,
-    description TEXT,
-    created_at TIMESTAMP(0) DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP(0) DEFAULT CURRENT_TIMESTAMP
-);
-```
+Actual `orders` schema includes: `order_number`, `payment_status`, `billing_address_id` (see `schema.sql`).
 
-### Products
-
-```sql
-CREATE TABLE products (
-    product_id BIGSERIAL PRIMARY KEY,
-    category_id BIGINT NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    price DECIMAL(10, 2) NOT NULL,
-    stock_quantity INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMP(0) DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP(0) DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_product_category
-        FOREIGN KEY (category_id)
-        REFERENCES categories(category_id)
-);
-
-CREATE INDEX idx_products_category_id ON products(category_id);
-```
-
-### Cart
-
-One cart per user.
-
-```sql
-CREATE TABLE cart (
-    cart_id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL UNIQUE,
-    created_at TIMESTAMP(0) DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP(0) DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_cart_user
-        FOREIGN KEY (user_id)
-        REFERENCES users(user_id)
-);
-```
-
-### Cart items
-
-```sql
-CREATE TABLE cart_items (
-    cart_item_id BIGSERIAL PRIMARY KEY,
-    cart_id BIGINT NOT NULL,
-    product_id BIGINT NOT NULL,
-    quantity INT NOT NULL CHECK (quantity > 0),
-    created_at TIMESTAMP(0) DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP(0) DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_cart_item_cart
-        FOREIGN KEY (cart_id)
-        REFERENCES cart(cart_id),
-    CONSTRAINT fk_cart_item_product
-        FOREIGN KEY (product_id)
-        REFERENCES products(product_id),
-    CONSTRAINT uq_cart_product UNIQUE (cart_id, product_id)
-);
-```
-
-### Orders
-
-```sql
-CREATE TABLE orders (
-    order_id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    shipping_address_id BIGINT NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
-    total_amount DECIMAL(10, 2) NOT NULL,
-    created_at TIMESTAMP(0) DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP(0) DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_order_user
-        FOREIGN KEY (user_id)
-        REFERENCES users(user_id),
-    CONSTRAINT fk_order_address
-        FOREIGN KEY (shipping_address_id)
-        REFERENCES addresses(address_id)
-);
-
-CREATE INDEX idx_orders_user_id ON orders(user_id);
-```
-
-### Order items
-
-`unit_price` is a snapshot at checkout time.
-
-```sql
-CREATE TABLE order_items (
-    order_item_id BIGSERIAL PRIMARY KEY,
-    order_id BIGINT NOT NULL,
-    product_id BIGINT NOT NULL,
-    quantity INT NOT NULL CHECK (quantity > 0),
-    unit_price DECIMAL(10, 2) NOT NULL,
-    created_at TIMESTAMP(0) DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_order_item_order
-        FOREIGN KEY (order_id)
-        REFERENCES orders(order_id),
-    CONSTRAINT fk_order_item_product
-        FOREIGN KEY (product_id)
-        REFERENCES products(product_id)
-);
-
-CREATE INDEX idx_order_items_order_id ON order_items(order_id);
-```
-
-### Users — role column (Phase 2)
+### Users — role column (Phase 2 — not yet applied)
 
 ```sql
 ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'CUSTOMER';
@@ -249,34 +162,34 @@ ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'CUSTOMER';
 
 ## Enums
 
-### `AddressType` (existing)
+### `AddressType` — ✅ existing
 
 `SHIPPING`, `BILLING`, `OFFICE`, `HOME`, `OTHER`
 
-### `UserRole` (new — Phase 2)
+### `UserRole` — ⬜ Phase 2
 
 `ADMIN`, `CUSTOMER`
 
-### `OrderStatus` (new — Phase 4)
+### `OrderStatus` — ⬜ Phase 4
 
-`PENDING`, `CONFIRMED`, `SHIPPED`, `DELIVERED`, `CANCELLED`
+`CREATED`, `CONFIRMED`, `SHIPPED`, `DELIVERED`, `CANCELLED` (align with `schema.sql` defaults)
 
 ---
 
 ## Java file checklist
 
-### Phase 1 — Categories & Products
+### Phase 1 — Categories & Products — ✅ Done
 
-| Layer | Files |
-|-------|-------|
-| `entity/` | `CategoryEntity.java`, `ProductEntity.java` |
-| `repository/` | `CategoryRepository.java`, `ProductRepository.java` |
-| `dto/` | `CategoryRequestDto`, `CategoryResponseDto`, `ProductRequestDto`, `ProductResponseDto` |
-| `service/` | `CategoryService.java`, `ProductService.java` |
-| `controller/` | `CategoryController.java`, `ProductController.java` |
-| `exception/` | `CategoryNotFoundException.java`, `ProductNotFoundException.java` |
+| Layer | Files | Status |
+|-------|-------|--------|
+| `entity/` | `CategoryEntity.java`, `ProductEntity.java` | ✅ |
+| `repository/` | `ICategoryRepository.java`, `IProductRepository.java` | ✅ |
+| `dto/` | `category/*`, `product/*` | ✅ |
+| `service/` | `CategoryService.java`, `ProductService.java` | ✅ |
+| `controller/` | `CategoryController.java`, `ProductController.java` | ✅ |
+| `exception/` | `CategoryNotFoundException.java`, `ProductNotFoundException.java` | ✅ |
 
-### Phase 2 — Authentication
+### Phase 2 — Authentication — ⬜ Not started
 
 | Layer | Files |
 |-------|-------|
@@ -288,24 +201,30 @@ ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'CUSTOMER';
 
 Update `UserEntity` with `role` field. Encode passwords with BCrypt.
 
-### Phase 3 — Cart
+### Phase 3 — Cart — ✅ Done (polish remaining)
 
-| Layer | Files |
-|-------|-------|
-| `entity/` | `CartEntity.java`, `CartItemEntity.java` |
-| `repository/` | `CartRepository.java`, `CartItemRepository.java` |
-| `dto/` | `CartResponseDto`, `CartItemRequestDto`, `CartItemResponseDto` |
-| `service/` | `CartService.java` |
-| `controller/` | `CartController.java` |
-| `exception/` | `OutOfStockException.java`, `CartItemNotFoundException.java` |
+| Layer | Files | Status |
+|-------|-------|--------|
+| `entity/` | `CartEntity.java`, `CartItemEntity.java` | ✅ |
+| `repository/` | `ICartRepository.java`, `ICartItemRepository.java` | ✅ |
+| `dto/cart/` | `CartResponseDto`, `AddCartItemRequestDto`, `CartItemResponseDto`, etc. | ✅ |
+| `service/` | `CartService.java` | ✅ |
+| `controller/` | `CartController.java` | ✅ |
+| `exception/` | `OutOfStockException.java`, `CartItemNotFoundException.java`, `CartNotFoundException.java` | ✅ |
 
-### Phase 4 — Orders
+**Remaining cart polish:**
+- [ ] `clearCart` endpoint
+- [ ] Cart item ownership validation on remove/update
+- [ ] Consistent `getCart` behavior when no cart exists (auto-create vs 404)
+- [ ] Remove duplicate `dto/cartItem/` package
+
+### Phase 4 — Orders — ⬜ Not started
 
 | Layer | Files |
 |-------|-------|
 | `enums/` | `OrderStatus.java` |
 | `entity/` | `OrderEntity.java`, `OrderItemEntity.java` |
-| `repository/` | `OrderRepository.java`, `OrderItemRepository.java` |
+| `repository/` | `IOrderRepository.java`, `IOrderItemRepository.java` |
 | `dto/` | `CheckoutRequestDto`, `OrderResponseDto`, `OrderItemResponseDto` |
 | `service/` | `OrderService.java` |
 | `controller/` | `OrderController.java` |
@@ -315,7 +234,75 @@ Update `UserEntity` with `role` field. Encode passwords with BCrypt.
 
 ## REST API reference
 
-### Categories — `/ecommerce/v1/categories`
+### Implemented endpoints (actual — legacy style)
+
+#### Users — `/ecommerce/v1/users`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/all` | List all users (DTO) |
+| `GET` | `/user` | Get user by ID (header: `user_id`) |
+| `POST` | `/createUser` | Create user |
+| `PATCH` | `/updateUser` | Partial update (body includes `user_id`) |
+| `PATCH` | `/isActive` | Toggle active status |
+| `DELETE` | `/deleteUser` | Delete user (header: `user_id`) |
+
+#### Addresses — `/ecommerce/v1/addresses`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/all` | List all addresses (entity — migrate to DTO) |
+| `GET` | `/addressId` | Get by ID (header: `address_id`) |
+| `GET` | `/userAddress` | List addresses for user (header: `user_id`) |
+| `POST` | `/createAddress` | Create address |
+| `PATCH` | `/updateAddress` | Update address |
+| `DELETE` | `/deleteAddress` | Delete address (header: `address_id`) |
+
+#### Categories — `/ecommerce/v1/categories`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/all` | List all categories (entity — migrate to DTO) |
+| `GET` | `/categoryId` | Get by ID (header: `category_id`) |
+| `GET` | `/getCategory` | Get by name (header: `category_name`) |
+| `POST` | `/createCategory` | Create category |
+| `PATCH` | `/updateCategory` | Update category |
+| `DELETE` | `/deleteCategoryById` | Delete by ID (header: `category_id`) |
+| `DELETE` | `/deleteCategoryByName` | Delete by name (header: `category_name`) |
+
+#### Products — `/ecommerce/v1/products`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/all` | List all products (DTO) |
+| `GET` | `/productId` | Get by ID (header: `product_id`) |
+| `GET` | `/productByName` | Get by name (`?name=`) |
+| `GET` | `/productsByCategoryId` | List by category (`?categoryId=`) |
+| `POST` | `/addProduct` | Create product (category validated) |
+| `PATCH` | `/updateProduct` | Update product |
+| `DELETE` | `/productId` | Delete product (header: `product_id`) |
+
+#### Cart — `/ecommerce/v1/cart`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/createCart` | Create or return existing cart |
+| `POST` | `/addItem` | Add/increment product in cart |
+| `GET` | `/getCart` | View cart with items and total (header: `user_id`) |
+| `PATCH` | `/updateQuantity` | Update item quantity |
+| `DELETE` | `/removeItem` | Remove cart line item |
+
+#### Health
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/` | Welcome message |
+
+---
+
+### Target endpoints (after auth + REST migration)
+
+#### Categories — `/ecommerce/v1/categories`
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
@@ -325,7 +312,7 @@ Update `UserEntity` with `role` field. Encode passwords with BCrypt.
 | `PUT` | `/{categoryId}` | ADMIN | Update category |
 | `DELETE` | `/{categoryId}` | ADMIN | Delete category |
 
-### Products — `/ecommerce/v1/products`
+#### Products — `/ecommerce/v1/products`
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
@@ -335,7 +322,7 @@ Update `UserEntity` with `role` field. Encode passwords with BCrypt.
 | `PUT` | `/{productId}` | ADMIN | Update product |
 | `DELETE` | `/{productId}` | ADMIN | Delete product |
 
-### Auth — `/ecommerce/v1/auth`
+#### Auth — `/ecommerce/v1/auth` — ⬜ Phase 2
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
@@ -353,9 +340,7 @@ Update `UserEntity` with `role` field. Encode passwords with BCrypt.
 }
 ```
 
-### Cart — `/ecommerce/v1/cart`
-
-All endpoints require a valid JWT (`Authorization: Bearer <token>`).
+#### Cart — `/ecommerce/v1/cart` (target — JWT protected)
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -365,57 +350,55 @@ All endpoints require a valid JWT (`Authorization: Bearer <token>`).
 | `DELETE` | `/items/{cartItemId}` | Remove item |
 | `DELETE` | `/` | Clear cart |
 
-### Orders — `/ecommerce/v1/orders`
-
-All endpoints require a valid JWT.
+#### Orders — `/ecommerce/v1/orders` — ⬜ Phase 4
 
 | Method | Path | Description |
 |--------|------|-------------|
 | `POST` | `/checkout` | Create order from cart (`shippingAddressId`) |
 | `GET` | `/` | List current user's orders |
 | `GET` | `/{orderId}` | Order detail with items |
-| `PATCH` | `/{orderId}/cancel` | Cancel order (only if `PENDING`) |
-
-### Existing endpoints (legacy style — migrate later)
-
-User and address endpoints use the older verb-in-path style (`/createUser`, `/createAddress`, header-based IDs). New modules use RESTful paths above. Migration of legacy endpoints is out of scope for now.
+| `PATCH` | `/{orderId}/cancel` | Cancel order (only if `PENDING`/`CREATED`) |
 
 ---
 
 ## Business rules
 
-### Catalog
+### Catalog — ✅ implemented (with gaps)
 
-- Category `name` must be unique.
-- Product must belong to an existing category.
-- `stock_quantity` cannot be negative.
-- Deleting a category should be blocked if products still reference it (or cascade-delete products — pick one and document the choice).
+- ✅ Category `name` must be unique (DB constraint).
+- ✅ Product must belong to an existing category (`CategoryNotFoundException` on add/update/list).
+- ✅ `stock_quantity` cannot be negative (DB check + `@Min(0)` on DTO).
+- ⬜ Default `stockQuantity` to `0` when omitted on create.
+- ⬜ Deleting a category blocked if products reference it (currently FK error → 500).
 
-### Cart
+### Cart — ✅ implemented (with gaps)
 
-- One cart per user; create lazily on first `POST /cart/items`.
-- `quantity` must be greater than 0.
-- If the same product is added again, update quantity instead of creating a duplicate row (enforced by `UNIQUE (cart_id, product_id)`).
-- Validate stock availability on add and update; throw `OutOfStockException` if `quantity > stock_quantity`.
+- ✅ One cart per user; create on `createCart` / `addItem`.
+- ✅ `quantity` must be greater than 0 (`@Min(1)` on DTOs).
+- ✅ Same product merged — `UNIQUE (cart_id, product_id)`.
+- ✅ Stock validated on add and update — `OutOfStockException`.
+- ⬜ `getCart` returns 404 if cart never created (inconsistent with `addItem`).
+- ⬜ No ownership check on remove/update by `cartItemId`.
+- ⬜ No `clearCart` endpoint.
 
-### Checkout (`@Transactional`)
+### Checkout (`@Transactional`) — ⬜ Phase 4
 
 1. Validate cart is not empty.
 2. Validate shipping address belongs to the authenticated user.
 3. Re-check stock for every cart item.
-4. Create `orders` row with status `PENDING`.
-5. Create `order_items` rows; copy `unit_price` from product at checkout time.
+4. Create `orders` row with status `CREATED` / `PENDING`.
+5. Create `order_items` rows; copy price snapshot at checkout time.
 6. Decrement `stock_quantity` on each product.
 7. Clear cart items.
 8. Roll back entire transaction on any failure.
 
-### Orders
+### Orders — ⬜ Phase 4
 
 - Users can only view their own orders.
-- Cancel is allowed only when status is `PENDING`.
+- Cancel allowed only when status is `PENDING` / `CREATED`.
 - On cancel, restore product stock quantities.
 
-### Roles
+### Roles — ⬜ Phase 2
 
 | Role | Permissions |
 |------|-------------|
@@ -426,20 +409,22 @@ User and address endpoints use the older verb-in-path style (`/createUser`, `/cr
 
 ## JPA relationship guidance
 
-| Module | Approach |
-|--------|----------|
-| **Products** | `@ManyToOne CategoryEntity category` on `ProductEntity`; expose `categoryId` in DTOs |
-| **Cart** | `@OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)` on `CartEntity` |
-| **Cart items** | `@ManyToOne CartEntity cart`, `@ManyToOne ProductEntity product` |
-| **Orders** | `@OneToMany` for order items with `cascade = CascadeType.ALL` |
-| **Order items** | `@ManyToOne OrderEntity order`, `@ManyToOne ProductEntity product` |
-| **Addresses** | Keep existing `Long userId` pattern (no refactor in scope) |
+| Module | Approach | Current |
+|--------|----------|---------|
+| **Products** | `@ManyToOne CategoryEntity category` on `ProductEntity` | `Long categoryId` FK column |
+| **Cart** | `@OneToMany(mappedBy = "cart", cascade = ALL, orphanRemoval = true)` | `Long cartId` on `CartItemEntity` |
+| **Cart items** | `@ManyToOne CartEntity cart`, `@ManyToOne ProductEntity product` | `Long` FK columns |
+| **Orders** | `@OneToMany` for order items with `cascade = ALL` | Not implemented |
+| **Order items** | `@ManyToOne OrderEntity order`, `@ManyToOne ProductEntity product` | Not implemented |
+| **Addresses** | Keep `Long userId` pattern | ✅ `Long userId` |
+
+Refactoring to JPA associations is optional; current `Long` FK pattern works.
 
 ---
 
-## Dependencies (Phase 2)
+## Dependencies
 
-Add to `pom.xml`:
+### Phase 2 — add to `pom.xml` (not yet added)
 
 ```xml
 <!-- Spring Security -->
@@ -468,7 +453,7 @@ Add to `pom.xml`:
 </dependency>
 ```
 
-Optional later (Phase 5):
+### Phase 5 — optional
 
 ```xml
 <dependency>
@@ -482,66 +467,84 @@ Optional later (Phase 5):
 
 ## Phase 0 — Foundation fixes
 
-Before building new modules, tighten the existing codebase:
+**Status:** 🔄 In progress
 
-1. Fix `ResourceNotFoundException` — add proper constructor and message field.
-2. Register handlers in `GlobalExceptionHandler` for:
-   - `ResourceNotFoundException` → 404
-   - `MethodArgumentNotValidException` → 400
-   - Domain exceptions (`ProductNotFoundException`, etc.)
-3. Replace `RuntimeException` in `AddressService` and `UserService` with `ResourceNotFoundException`.
-4. Return DTOs from address `GET /all` instead of entities.
-5. Remove `createdAt`/`updatedAt` from `UserService.toResponseDto()` or add them to `UserResponseDto`.
+### Done
+
+- ✅ `GlobalExceptionHandler` with handlers for validation, user, product, category, cart exceptions
+- ✅ `ProductNotFoundException`, `CategoryNotFoundException` with message constructors
+- ✅ `UserNotFoundException`, `UserAlreadyExistsException`
+- ✅ `CartNotFoundException`, `CartItemNotFoundException`, `OutOfStockException`
+- ✅ `UserService.getUserById` returns DTO; email update bug fixed
+- ✅ `AddressController.getAddressesByUserId` calls `addressService`
+- ✅ Product module returns DTOs; category validation on add/update
+
+### Remaining
+
+1. Replace `RuntimeException` in `CategoryService` and `AddressService` with domain exceptions.
+2. Add `AddressNotFoundException` + handler.
+3. Handler for `DataIntegrityViolationException` (FK delete failures → 409).
+4. Return DTOs from Category/Address `GET /all` instead of entities.
+5. `UserController.updateUser` — use DTO + `@Valid` instead of raw `Map`.
+6. `UserRequestDto` — `@NotNull` on required create fields.
+7. `AddressRequestDto` — align NOT NULL fields with DB (`city`, `state`, `pinCode`, `country`).
+8. `AddressService.createAddress` — validate user exists.
+9. `AddressService.getAddressesByUserId` — return `[]` when empty (not throw).
+10. `ProductService.addProduct` — default `stockQuantity` to `0` if null.
+11. Remove duplicate `dto/cartItem/` package.
 
 ---
 
 ## Phase-by-phase implementation steps
 
-### Phase 1 — Categories & Products
+### Phase 1 — Categories & Products — ✅ Done
 
-1. Add DDL to `schema.sql`.
-2. Create `CategoryEntity`, repository, DTOs, service, controller.
-3. Create `ProductEntity` with `@ManyToOne CategoryEntity`.
-4. Implement CRUD for both modules.
-5. Register `CategoryNotFoundException` and `ProductNotFoundException` in `GlobalExceptionHandler`.
+1. ✅ DDL in `schema.sql`.
+2. ✅ Entities, repositories, DTOs, services, controllers.
+3. ✅ CRUD for both modules.
+4. ✅ `CategoryNotFoundException` and `ProductNotFoundException` in `GlobalExceptionHandler`.
 
-### Phase 2 — Authentication
+### Phase 2 — Authentication — ⬜ Next
 
 1. Add Security + JWT dependencies.
 2. Add `role` column and `UserRole` enum to `UserEntity`.
 3. Create `SecurityConfig`, `JwtUtil`, `JwtAuthFilter`.
 4. Create `AuthController` with `/register` and `/login`.
-5. BCrypt-encode passwords on user creation.
+5. BCrypt-encode passwords on user creation and update.
 6. Protect endpoints:
    - Public: `GET` categories/products, auth routes, health check
    - `ADMIN`: catalog write operations
    - Authenticated: cart and order routes
 
-### Phase 3 — Cart
+### Phase 3 — Cart — ✅ Done (polish remaining)
 
-1. Add `cart` and `cart_items` DDL.
-2. Create entities with JPA associations.
-3. Implement `CartService`:
-   - `getOrCreateCart(userId)`
-   - `addItem(userId, productId, quantity)`
-   - `updateItem(userId, cartItemId, quantity)`
-   - `removeItem(userId, cartItemId)`
-   - `clearCart(userId)`
-4. Create `CartController`; resolve `userId` from JWT principal.
+1. ✅ `cart` and `cart_items` DDL.
+2. ✅ Entities and repositories.
+3. ✅ `CartService`: `createCart`, `addItem`, `updateQuantity`, `removeItem`, `getCart`.
+4. ✅ `CartController` with stock validation and totals.
+5. ⬜ `clearCart(userId)`.
+6. ⬜ Resolve `userId` from JWT principal (after Phase 2).
 
-### Phase 4 — Orders
+### Phase 4 — Orders — ⬜ Coming
 
-1. Add `orders` and `order_items` DDL.
-2. Create entities and repositories.
-3. Implement `OrderService.checkout(userId, shippingAddressId)` with `@Transactional`.
+1. ✅ `orders` and `order_items` DDL (already in `schema.sql`).
+2. Create `OrderEntity`, `OrderItemEntity`, repositories.
+3. Implement `OrderService.checkout(userId, shippingAddressId, billingAddressId)` with `@Transactional`.
 4. Implement list, detail, and cancel endpoints.
-5. On cancel (`PENDING` only), restore stock and set status to `CANCELLED`.
+5. On cancel, restore stock and set status to `CANCELLED`.
+
+### Phase 5 — Cross-cutting — ⬜ Not started
+
+1. springdoc-openapi / Swagger UI.
+2. JUnit 5 + Mockito service tests.
+3. Integration tests with TestContainers.
+4. Pagination on list endpoints.
 
 ---
 
 ## Out of scope (future phases)
 
-These are covered in [`structured-project-plan.docs`](structured-project-plan.docs) and are not part of this roadmap:
+Covered in [`structured-project-plan.docs`](structured-project-plan.docs):
 
 - Payment integration (Stripe)
 - Redis caching
@@ -558,41 +561,77 @@ These are covered in [`structured-project-plan.docs`](structured-project-plan.do
 ```
 src/main/java/com/furqan/ecommerce/
 ├── controller/
-│   ├── CategoryController.java      (Phase 1)
-│   ├── ProductController.java       (Phase 1)
-│   ├── AuthController.java          (Phase 2)
-│   ├── CartController.java          (Phase 3)
-│   └── OrderController.java         (Phase 4)
+│   ├── UserController.java          ✅
+│   ├── AddressController.java       ✅
+│   ├── CategoryController.java      ✅
+│   ├── ProductController.java       ✅
+│   ├── CartController.java          ✅
+│   ├── HealthController.java        ✅
+│   ├── AuthController.java          ⬜ Phase 2
+│   └── OrderController.java         ⬜ Phase 4
 ├── service/
-│   ├── CategoryService.java
-│   ├── ProductService.java
-│   ├── AuthService.java
-│   ├── CartService.java
-│   └── OrderService.java
+│   ├── UserService.java             ✅
+│   ├── AddressService.java          ✅ (polish)
+│   ├── CategoryService.java         ✅ (polish)
+│   ├── ProductService.java          ✅
+│   ├── CartService.java             ✅ (polish)
+│   ├── AuthService.java             ⬜ Phase 2
+│   └── OrderService.java            ⬜ Phase 4
 ├── repository/
-│   ├── CategoryRepository.java
-│   ├── ProductRepository.java
-│   ├── CartRepository.java
-│   ├── CartItemRepository.java
-│   ├── OrderRepository.java
-│   └── OrderItemRepository.java
+│   ├── IUserRepository.java         ✅
+│   ├── IAddressRepository.java      ✅
+│   ├── ICategoryRepository.java     ✅
+│   ├── IProductRepository.java      ✅
+│   ├── ICartRepository.java         ✅
+│   ├── ICartItemRepository.java     ✅
+│   ├── IOrderRepository.java        ⬜ Phase 4
+│   └── IOrderItemRepository.java    ⬜ Phase 4
 ├── entity/
-│   ├── CategoryEntity.java
-│   ├── ProductEntity.java
-│   ├── CartEntity.java
-│   ├── CartItemEntity.java
-│   ├── OrderEntity.java
-│   └── OrderItemEntity.java
+│   ├── UserEntity.java              ✅
+│   ├── AddressEntity.java           ✅
+│   ├── CategoryEntity.java          ✅
+│   ├── ProductEntity.java           ✅
+│   ├── CartEntity.java              ✅
+│   ├── CartItemEntity.java          ✅
+│   ├── OrderEntity.java             ⬜ Phase 4
+│   └── OrderItemEntity.java         ⬜ Phase 4
 ├── dto/
-│   └── (request/response DTOs per module)
+│   ├── user/                        ✅
+│   ├── address/                     ✅
+│   ├── category/                    ✅
+│   ├── product/                     ✅
+│   ├── cart/                        ✅
+│   ├── common/                      ✅
+│   └── order/                       ⬜ Phase 4
 ├── enums/
-│   ├── AddressType.java             (existing)
-│   ├── UserRole.java                (Phase 2)
-│   └── OrderStatus.java             (Phase 4)
+│   ├── AddressType.java             ✅
+│   ├── UserRole.java                ⬜ Phase 2
+│   └── OrderStatus.java             ⬜ Phase 4
 ├── exception/
-│   └── (domain exceptions + GlobalExceptionHandler)
-└── config/
-    ├── SecurityConfig.java          (Phase 2)
+│   ├── GlobalExceptionHandler.java  ✅
+│   ├── UserNotFoundException.java   ✅
+│   ├── ProductNotFoundException.java ✅
+│   ├── CategoryNotFoundException.java ✅
+│   ├── CartNotFoundException.java   ✅
+│   ├── CartItemNotFoundException.java ✅
+│   ├── OutOfStockException.java     ✅
+│   ├── OrderNotFoundException.java  ⬜ Phase 4
+│   └── InvalidOrderStateException.java ⬜ Phase 4
+├── configs/
+│   ├── EndpointPrinter.java         ✅
+│   └── StartupSummaryPrinter.java   ✅
+└── config/                          ⬜ Phase 2
+    ├── SecurityConfig.java
     ├── JwtUtil.java
     └── JwtAuthFilter.java
 ```
+
+---
+
+## Next steps (recommended order)
+
+1. **Phase 0 polish** — fix remaining `RuntimeException`s, address DTO validation, empty address list behavior.
+2. **Phase 2 Auth** — JWT, BCrypt, roles, protect write endpoints.
+3. **Cart polish** — `clearCart`, ownership checks, consistent `getCart`.
+4. **Phase 4 Orders** — checkout flow with `@Transactional`.
+5. **Phase 5** — Swagger, tests, pagination.
