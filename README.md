@@ -1,142 +1,87 @@
 # E-Commerce Platform
 
-A production-oriented E-Commerce Platform backend built using Java 21, Spring Boot 3.5, PostgreSQL, Docker, and Maven.
+A backend e-commerce platform built with **Java 21**, **Spring Boot 3.5**, **PostgreSQL**, and **Maven**. Covers users, addresses, catalog (categories + products), and shopping cart — with orders and JWT auth planned next.
 
-The goal of this project is to gain hands-on experience with modern backend development, scalable system design, REST APIs, database management, caching, messaging systems, and cloud-native application development.
+**Base URL:** `http://localhost:8081/ecommerce/v1`
+
+---
+
+## Implementation Status
+
+| Module | Status |
+|--------|--------|
+| Users | ✅ Implemented |
+| Addresses | ✅ Implemented |
+| Categories | ✅ Implemented |
+| Products | ✅ Implemented |
+| Cart / Cart Items | ✅ Implemented |
+| Orders / Order Items | ⬜ Schema only (`schema.sql`) |
+| Authentication (JWT) | ⬜ Not started |
+| Exception handling | 🔄 Partial |
+
+For detailed APIs, business rules, and file checklists see:
+- [`FEATURE_ROADMAP.md`](FEATURE_ROADMAP.md)
+- [`structured-project-plan.docs`](structured-project-plan.docs)
 
 ---
 
 ## Tech Stack
 
-### Backend
+### In use
 
-* Java 21
-* Spring Boot 3.5
-* Spring Data JPA
-* Hibernate ORM
-* Maven
+| Layer | Technology |
+|-------|------------|
+| Language | Java 21 |
+| Framework | Spring Boot 3.5 |
+| Persistence | Spring Data JPA, Hibernate |
+| Database | PostgreSQL |
+| Build | Maven |
+| Utilities | Lombok, Jakarta Validation |
+| Monitoring | Spring Boot Actuator |
 
-### Database
+### Planned
 
-* PostgreSQL 17
-
-### Monitoring
-
-* Spring Boot Actuator
-
-### DevOps
-
-* Docker
-* Docker Compose
-
-### Version Control
-
-* Git
-* GitHub
-
-### Planned Integrations
-
-* Redis
-* Apache Kafka
-* AWS
-* JWT Authentication
-* Swagger / OpenAPI
+- JWT + Spring Security
+- Swagger / OpenAPI (springdoc)
+- Docker & Docker Compose
+- Redis, Kafka, AWS
 
 ---
 
 ## Features
 
-### Current Features
+### Implemented
 
-* Spring Boot application setup
-* PostgreSQL integration
-* Dockerized PostgreSQL database
-* User entity implementation
-* User CRUD APIs
-* Spring Data JPA integration
-* Actuator monitoring endpoints
-* Production-style startup summary
-* Layered architecture implementation
-* Exception-ready backend foundation
+- **Users** — create, list, get, partial update, activate/deactivate, delete
+- **Addresses** — CRUD, list by user, `AddressType` enum (SHIPPING, BILLING, etc.)
+- **Categories** — CRUD by ID or name
+- **Products** — CRUD, search by name, list by category, category validation
+- **Cart** — create cart, add item, update quantity, remove item, view cart with totals
+- **Stock validation** — `OutOfStockException` on add/update cart items
+- **Exception handling** — `GlobalExceptionHandler` with domain exceptions
+- **Health** — welcome endpoint at `/`
 
-### Planned Features
+### Coming next
 
-#### User Management
-
-* User registration
-* User profile management
-* User activation/deactivation
-
-#### Product Management
-
-* Product CRUD operations
-* Product search
-* Product filtering and sorting
-
-#### Category Management
-
-* Category CRUD operations
-* Hierarchical category support
-
-#### Shopping Cart
-
-* Add to cart
-* Remove from cart
-* Update cart quantity
-
-#### Order Management
-
-* Place order
-* Order history
-* Order tracking
-
-#### Authentication & Authorization
-
-* JWT Authentication
-* Role-based access control
-
-#### Payment Integration
-
-* Payment gateway integration
-* Transaction tracking
-
-#### Inventory Management
-
-* Inventory tracking
-* Stock management
-
-#### Performance & Scalability
-
-* Redis caching
-* Kafka event-driven architecture
-* Database optimization
-* API rate limiting
+1. Foundation polish (exceptions, DTO consistency, validation gaps)
+2. JWT authentication + role-based access (ADMIN / CUSTOMER)
+3. Orders & checkout (`@Transactional` flow)
+4. Swagger, tests, Docker
 
 ---
 
 ## Project Structure
 
 ```text
-src/main/java/com/furqan/ecommerce
-│
-├── configs
-│   └── StartupSummaryPrinter.java
-│
-├── controller
-│   ├── HealthController.java
-│   └── UserController.java
-│
-├── dto
-│
-├── entity
-│   └── UserEntity.java
-│
-├── repository
-│   └── UserRepository.java
-│
-├── service
-│   └── UserService.java
-│
+src/main/java/com/furqan/ecommerce/
+├── controller/     User, Address, Category, Product, Cart, Health
+├── service/        User, Address, Category, Product, Cart
+├── repository/     IUser, IAddress, ICategory, IProduct, ICart, ICartItem
+├── entity/         User, Address, Category, Product, Cart, CartItem
+├── dto/            user, address, category, product, cart, common
+├── exception/      GlobalExceptionHandler + domain exceptions
+├── configs/        EndpointPrinter, StartupSummaryPrinter
+├── enums/          AddressType
 └── EcommerceApplication.java
 ```
 
@@ -144,111 +89,144 @@ src/main/java/com/furqan/ecommerce
 
 ## Prerequisites
 
-* Java 21+
-* Maven 3.9+
-* Docker Desktop
-* PostgreSQL 17+
+- Java 21+
+- Maven 3.9+
+- PostgreSQL (local or remote)
 
 ---
 
-## Application URL
+## Getting Started
 
-```text
-http://localhost:8081
-```
----
+### 1. Database
 
-### User APIs
+Create the database and run the schema:
 
-#### Get All Users
-
-```http
-GET /ecommerce/v1/users/all
+```bash
+createdb ecommerce
+psql -d ecommerce -f schema.sql
 ```
 
-#### Get User By ID
+### 2. Configuration
 
-```http
-GET /ecommerce/v1/users/user?userId=1
+Update `src/main/resources/application.properties` if needed:
+
+```properties
+server.port=8081
+spring.datasource.url=jdbc:postgresql://localhost:5432/ecommerce
+spring.datasource.username=postgres
+spring.datasource.password=postgres
 ```
 
-#### Create User
+### 3. Run
 
-```http
-POST /ecommerce/v1/users/createUser
+```bash
+mvn spring-boot:run
 ```
 
-#### Update User Status
-
-```http
-PATCH /ecommerce/v1/users/isActive
-```
-
-#### Delete User
-
-```http
-DELETE /ecommerce/v1/users/deleteUser
-```
+App runs at: **http://localhost:8081**
 
 ---
 
-## Learning Objectives
+## API Overview
 
-This project is being developed to strengthen practical knowledge of:
+> **Note:** Current APIs use verb-in-path style and header-based IDs. RESTful path variables + JWT are planned.
 
-* Java 21
-* Spring Boot 3.x
-* REST API Development
-* PostgreSQL
-* JPA & Hibernate
-* Docker
-* Database Design
-* Backend Engineering Best Practices
-* Scalable System Design
-* Microservices Architecture
-* Distributed Systems
-* Cloud-Native Development
+### Users — `/ecommerce/v1/users`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/all` | List all users |
+| `GET` | `/user` | Get user (header: `user_id`) |
+| `POST` | `/createUser` | Create user |
+| `PATCH` | `/updateUser` | Partial update |
+| `PATCH` | `/isActive` | Toggle active status |
+| `DELETE` | `/deleteUser` | Delete user (header: `user_id`) |
+
+### Addresses — `/ecommerce/v1/addresses`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/all` | List all addresses |
+| `GET` | `/addressId` | Get by ID (header: `address_id`) |
+| `GET` | `/userAddress` | List by user (header: `user_id`) |
+| `POST` | `/createAddress` | Create address |
+| `PATCH` | `/updateAddress` | Update address |
+| `DELETE` | `/deleteAddress` | Delete (header: `address_id`) |
+
+### Categories — `/ecommerce/v1/categories`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/all` | List categories |
+| `GET` | `/categoryId` | Get by ID (header: `category_id`) |
+| `GET` | `/getCategory` | Get by name (header: `category_name`) |
+| `POST` | `/createCategory` | Create category |
+| `PATCH` | `/updateCategory` | Update category |
+| `DELETE` | `/deleteCategoryById` | Delete by ID |
+| `DELETE` | `/deleteCategoryByName` | Delete by name |
+
+### Products — `/ecommerce/v1/products`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/all` | List products |
+| `GET` | `/productId` | Get by ID (header: `product_id`) |
+| `GET` | `/productByName?name=` | Get by name |
+| `GET` | `/productsByCategoryId?categoryId=` | List by category |
+| `POST` | `/addProduct` | Create product |
+| `PATCH` | `/updateProduct` | Update product |
+| `DELETE` | `/productId` | Delete (header: `product_id`) |
+
+### Cart — `/ecommerce/v1/cart`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/createCart` | Create or return cart |
+| `POST` | `/addItem` | Add/increment item |
+| `GET` | `/getCart` | View cart + totals (header: `user_id`) |
+| `PATCH` | `/updateQuantity` | Update item quantity |
+| `DELETE` | `/removeItem` | Remove cart line item |
+
+### Health
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/` | Welcome message |
 
 ---
 
 ## Roadmap
 
-### Phase 1 (Completed)
+| Phase | Scope | Status |
+|-------|-------|--------|
+| Foundation | Spring Boot, JPA, PostgreSQL, Users | ✅ Done |
+| Catalog | Categories + Products | ✅ Done |
+| Shopping | Addresses + Cart | ✅ Done |
+| Polish | Exception handling, validation fixes | 🔄 In progress |
+| Auth | JWT + Spring Security + roles | ⬜ Next |
+| Orders | Checkout, order history, cancel | ⬜ Coming |
+| Cross-cutting | Swagger, tests, Docker | ⬜ Planned |
+| Advanced | Redis, Kafka, AWS, microservices | ⬜ Future |
 
-* Spring Boot Setup
-* PostgreSQL Integration
-* Docker Setup
-* User APIs
-* Actuator Integration
+---
 
-### Phase 2 (In Progress)
+## Learning Objectives
 
-* Product APIs
-* Category APIs
-* Validation Framework
-* Global Exception Handling
-
-### Phase 3
-
-* JWT Authentication
-* Redis Integration
-* Kafka Integration
-
-### Phase 4
-
-* Docker Compose
-* CI/CD Pipeline
-* AWS Deployment
+- Java 21 & Spring Boot 3.x
+- REST API design & DTO pattern
+- PostgreSQL & JPA/Hibernate
+- Domain exceptions & global error handling
+- Transactional business logic (cart, checkout)
+- Authentication, caching, messaging (planned)
 
 ---
 
 ## Author
 
-**Furqan Moin**
+**Furqan Moin**  
+Backend Engineer | Java | Spring Boot | PostgreSQL  
 
-Backend Engineer | Java | Spring Boot | PostgreSQL
-
-GitHub: https://github.com/furqan-moin
+GitHub: [furqan-moin](https://github.com/furqan-moin)
 
 ---
 
