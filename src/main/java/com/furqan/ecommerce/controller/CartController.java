@@ -46,9 +46,4 @@ public class CartController {
         return cartService.getCart(userId);
     }
 
-    @DeleteMapping("/clearCart")
-    public void clearCart(@Valid @RequestBody Long userId) {
-        cartService.clearCart(userId);
-    }
-
 }

@@ -1,6 +1,6 @@
 # E-Commerce Platform
 
-A backend e-commerce platform built with **Java 21**, **Spring Boot 3.5**, **PostgreSQL**, and **Maven**. Covers users, addresses, catalog (categories + products), and shopping cart — with orders and JWT auth planned next.
+A backend e-commerce platform built with **Java 21**, **Spring Boot 3.5**, **PostgreSQL**, and **Maven**. Covers users, addresses, catalog, cart, and order checkout. JWT auth and cross-cutting polish are next.
 
 **Base URL:** `http://localhost:8081/ecommerce/v1`
 
@@ -14,8 +14,8 @@ A backend e-commerce platform built with **Java 21**, **Spring Boot 3.5**, **Pos
 | Addresses | ✅ Implemented |
 | Categories | ✅ Implemented |
 | Products | ✅ Implemented |
-| Cart / Cart Items | ✅ Implemented |
-| Orders / Order Items | ⬜ Schema only (`schema.sql`) |
+| Cart / Cart Items | ✅ Implemented (polish remaining) |
+| Orders / Order Items | ✅ Implemented (polish remaining) |
 | Authentication (JWT) | ⬜ Not started |
 | Exception handling | 🔄 Partial |
 
@@ -57,7 +57,8 @@ For detailed APIs, business rules, and file checklists see:
 - **Categories** — CRUD by ID or name
 - **Products** — CRUD, search by name, list by category, category validation
 - **Cart** — create cart, add item, update quantity, remove item, view cart with totals
-- **Stock validation** — `OutOfStockException` on add/update cart items
+- **Orders** — checkout from cart, list orders, order detail, cancel (`@Transactional`)
+- **Stock validation** — on cart and checkout flows
 - **Exception handling** — `GlobalExceptionHandler` with domain exceptions
 - **Health** — welcome endpoint at `/`
 
@@ -65,8 +66,7 @@ For detailed APIs, business rules, and file checklists see:
 
 1. Foundation polish (exceptions, DTO consistency, validation gaps)
 2. JWT authentication + role-based access (ADMIN / CUSTOMER)
-3. Orders & checkout (`@Transactional` flow)
-4. Swagger, tests, Docker
+3. Swagger, tests, Docker
 
 ---
 
@@ -74,14 +74,14 @@ For detailed APIs, business rules, and file checklists see:
 
 ```text
 src/main/java/com/furqan/ecommerce/
-├── controller/     User, Address, Category, Product, Cart, Health
-├── service/        User, Address, Category, Product, Cart
-├── repository/     IUser, IAddress, ICategory, IProduct, ICart, ICartItem
-├── entity/         User, Address, Category, Product, Cart, CartItem
-├── dto/            user, address, category, product, cart, common
+├── controller/     User, Address, Category, Product, Cart, Order, Health
+├── service/        User, Address, Category, Product, Cart, Order
+├── repository/     IUser … ICartItem, IOrder, IOrderItem
+├── entity/         User, Address, Category, Product, Cart, CartItem, Order, OrderItem
+├── dto/            user, address, category, product, cart, order, common
 ├── exception/      GlobalExceptionHandler + domain exceptions
 ├── configs/        EndpointPrinter, StartupSummaryPrinter
-├── enums/          AddressType
+├── enums/          AddressType, OrderStatus, PaymentStatus
 └── EcommerceApplication.java
 ```
 
@@ -187,6 +187,15 @@ App runs at: **http://localhost:8081**
 | `PATCH` | `/updateQuantity` | Update item quantity |
 | `DELETE` | `/removeItem` | Remove cart line item |
 
+### Orders — `/ecommerce/v1/orders`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/checkout` | Place order from cart |
+| `GET` | `/` | List orders (header: `user_id`) |
+| `GET` | `/{orderId}` | Order detail (header: `user_id`) |
+| `PATCH` | `/{orderId}/cancel` | Cancel order (header: `user_id`) |
+
 ### Health
 
 | Method | Path | Description |
@@ -202,9 +211,9 @@ App runs at: **http://localhost:8081**
 | Foundation | Spring Boot, JPA, PostgreSQL, Users | ✅ Done |
 | Catalog | Categories + Products | ✅ Done |
 | Shopping | Addresses + Cart | ✅ Done |
+| Orders | Checkout, list, detail, cancel | ✅ Done |
 | Polish | Exception handling, validation fixes | 🔄 In progress |
 | Auth | JWT + Spring Security + roles | ⬜ Next |
-| Orders | Checkout, order history, cancel | ⬜ Coming |
 | Cross-cutting | Swagger, tests, Docker | ⬜ Planned |
 | Advanced | Redis, Kafka, AWS, microservices | ⬜ Future |
 
