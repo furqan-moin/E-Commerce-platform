@@ -10,7 +10,6 @@ import com.furqan.ecommerce.repository.ICartRepository;
 import com.furqan.ecommerce.repository.IProductRepository;
 import com.furqan.ecommerce.repository.IUserRepository;
 import jakarta.transaction.Transactional;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -23,7 +22,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Transactional
 public class CartService {
-    final ICartRepository cartRepository;
+    private final ICartRepository cartRepository;
     private final IProductRepository productRepository;
     private final IUserRepository userRepository;
     private final ICartItemRepository cartItemRepository;
@@ -51,8 +50,7 @@ public class CartService {
         cartItemRepository.delete(cartItem);
     }
 
-    public void updateQuantity(
-            UpdateCartItemRequestDto request) {
+    public void updateQuantity(UpdateCartItemRequestDto request) {
         CartItemEntity cartItem = cartItemRepository.findByCartItemId(request.getCartItemId())
                 .orElseThrow(() -> new CartItemNotFoundException("cart item not found with id " + request.getCartItemId()));
 

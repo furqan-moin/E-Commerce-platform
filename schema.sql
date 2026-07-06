@@ -29,7 +29,7 @@ categories
 -- USERS
 -- =====================================================
 
-CREATE TABLE users (
+create TABLE users (
     user_id BIGSERIAL PRIMARY KEY,
 
     first_name VARCHAR(255) NOT NULL,
@@ -51,14 +51,14 @@ CREATE TABLE users (
 
 -- Sample User
 
-INSERT INTO users (
+insert into users (
     first_name,
     last_name,
     email,
     password,
     country_code
 )
-VALUES (
+values (
     'Furqan',
     'Moin',
     'furqan.moin7@gmail.com',
@@ -70,7 +70,7 @@ VALUES (
 -- ADDRESSES
 -- =====================================================
 
-CREATE TABLE addresses (
+create TABLE addresses (
     address_id BIGSERIAL PRIMARY KEY,
 
     user_id BIGINT NOT NULL,
@@ -94,12 +94,12 @@ CREATE TABLE addresses (
         REFERENCES users(user_id)
 );
 
-CREATE INDEX idx_addresses_user_id
-ON addresses(user_id);
+create index idx_addresses_user_id
+on addresses(user_id);
 
 -- Sample Address
 
-INSERT INTO addresses (
+insert into addresses (
     user_id,
     address_type,
     address_line1,
@@ -108,7 +108,7 @@ INSERT INTO addresses (
     pin_code,
     country
 )
-VALUES (
+values (
     1,
     'SHIPPING',
     'Koramangala 5th Block',
@@ -122,7 +122,7 @@ VALUES (
 -- CATEGORIES
 -- =====================================================
 
-CREATE TABLE categories (
+create TABLE categories (
     category_id BIGSERIAL PRIMARY KEY,
 
     name VARCHAR(255) NOT NULL UNIQUE,
@@ -132,8 +132,8 @@ CREATE TABLE categories (
     updated_at TIMESTAMP(0) DEFAULT CURRENT_TIMESTAMP
 );
 
-INSERT INTO categories(name, description)
-VALUES
+insert into categories(name, description)
+values
 ('Electronics', 'Electronic devices and gadgets'),
 ('Fashion', 'Clothing and accessories'),
 ('Books', 'Books and educational materials');
@@ -142,7 +142,7 @@ VALUES
 -- PRODUCTS
 -- =====================================================
 
-CREATE TABLE products (
+create TABLE products (
     product_id BIGSERIAL PRIMARY KEY,
 
     category_id BIGINT NOT NULL,
@@ -168,18 +168,18 @@ CREATE TABLE products (
         CHECK(stock_quantity >= 0)
 );
 
-CREATE INDEX idx_products_category_id
-ON products(category_id);
+create index idx_products_category_id
+on products(category_id);
 
 
-INSERT INTO products(
+insert into products(
     category_id,
     name,
     description,
     price,
     stock_quantity
 )
-VALUES
+values
 (
     1,
     'iPhone 16 Pro',
@@ -213,7 +213,7 @@ VALUES
 -- CART
 -- =====================================================
 
-CREATE TABLE cart (
+create TABLE cart (
     cart_id BIGSERIAL PRIMARY KEY,
 
     user_id BIGINT NOT NULL,
@@ -231,25 +231,25 @@ CREATE TABLE cart (
         UNIQUE(user_id)
 );
 
-CREATE INDEX idx_cart_user_id
-ON cart(user_id);
+create index idx_cart_user_id
+on cart(user_id);
 
 
-INSERT INTO cart(
+insert into cart(
     user_id,
     is_active
 )
-VALUES
+values
 (
     1,
-    TRUE
+    true
 );
 
 -- =====================================================
 -- CART ITEMS
 -- =====================================================
 
-CREATE TABLE cart_items (
+create TABLE cart_items (
     cart_item_id BIGSERIAL PRIMARY KEY,
 
     cart_id BIGINT NOT NULL,
@@ -275,19 +275,19 @@ CREATE TABLE cart_items (
         CHECK(quantity > 0)
 );
 
-CREATE INDEX idx_cart_items_cart_id
-ON cart_items(cart_id);
+create index idx_cart_items_cart_id
+on cart_items(cart_id);
 
-CREATE INDEX idx_cart_items_product_id
-ON cart_items(product_id);
+create index idx_cart_items_product_id
+on cart_items(product_id);
 
 
-INSERT INTO cart_items (
+insert into cart_items (
     cart_id,
     product_id,
     quantity
 )
-VALUES
+values
 (
     1,
     1,
@@ -303,7 +303,7 @@ VALUES
 -- ORDERS
 -- =====================================================
 
-CREATE TABLE orders (
+create TABLE orders (
     order_id BIGSERIAL PRIMARY KEY,
 
     order_number VARCHAR(100) UNIQUE NOT NULL,
@@ -335,11 +335,11 @@ CREATE TABLE orders (
         REFERENCES addresses(address_id)
 );
 
-CREATE INDEX idx_orders_user_id
-ON orders(user_id);
+create index idx_orders_user_id
+on orders(user_id);
 
 
-INSERT INTO orders(
+insert into orders(
     order_number,
     user_id,
     status,
@@ -348,7 +348,7 @@ INSERT INTO orders(
     shipping_address_id,
     billing_address_id
 )
-VALUES
+values
 (
     'ORD-20260610-0001',
     1,
@@ -363,7 +363,7 @@ VALUES
 -- ORDER ITEMS
 -- =====================================================
 
-CREATE TABLE order_items (
+create TABLE order_items (
     order_item_id BIGSERIAL PRIMARY KEY,
 
     order_id BIGINT NOT NULL,
@@ -390,19 +390,19 @@ CREATE TABLE order_items (
         CHECK(price >= 0)
 );
 
-CREATE INDEX idx_order_items_order_id
-ON order_items(order_id);
+create index idx_order_items_order_id
+on order_items(order_id);
 
-CREATE INDEX idx_order_items_product_id
-ON order_items(product_id);
+create index idx_order_items_product_id
+on order_items(product_id);
 
-INSERT INTO order_items(
+insert into order_items(
     order_id,
     product_id,
     quantity,
     price
 )
-VALUES
+values
 (
     1,
     1,
@@ -420,48 +420,48 @@ VALUES
 -- Verification Queries
 -- =====================================================
 --User Addresses
-SELECT *
-FROM addresses
-WHERE user_id = 1;
+select *
+from addresses
+where user_id = 1;
 
 --=====================================================
 --User Cart
 
-SELECT
+select
     c.cart_id,
     p.name,
     ci.quantity,
     p.price
-FROM cart c
-JOIN cart_items ci
-    ON c.cart_id = ci.cart_id
-JOIN products p
-    ON p.product_id = ci.product_id
-WHERE c.user_id = 1;
+from cart c
+join cart_items ci
+    on c.cart_id = ci.cart_id
+join products p
+    on p.product_id = ci.product_id
+where c.user_id = 1;
 
 --=====================================================
 --User Orders
 
-SELECT
+select
     o.order_number,
     o.status,
     o.payment_status,
     o.total_amount
-FROM orders o
-WHERE o.user_id = 1;
+from orders o
+where o.user_id = 1;
 
 --=====================================================
 --Order Details
 
-SELECT
+select
     o.order_number,
     p.name,
     oi.quantity,
     oi.price
-FROM orders o
-JOIN order_items oi
-    ON o.order_id = oi.order_id
-JOIN products p
-    ON p.product_id = oi.product_id
-WHERE o.order_id = 1;
+from orders o
+join order_items oi
+    on o.order_id = oi.order_id
+join products p
+    on p.product_id = oi.product_id
+where o.order_id = 1;
 

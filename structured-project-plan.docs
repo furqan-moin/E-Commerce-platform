@@ -1,5 +1,5 @@
 E-Commerce Platform — Structured Project Plan
-Last updated: June 2026
+Last updated: July 2026
 Branch: shopping-module
 
 Companion doc: FEATURE_ROADMAP.md (detailed APIs, DDL, file checklists, business rules)
@@ -14,15 +14,14 @@ IMPLEMENTATION STATUS OVERVIEW
 
 DONE              PARTIAL             NOT STARTED
 -----             -------             -----------
-Foundation        Exception           Orders / Checkout
-Users             Handling            Authentication (JWT)
-Addresses                             Payment
-Categories                            Swagger / OpenAPI
-Products                              Testing
-Cart                                  Docker
-DB Schema                             Redis
-                                      Kafka
-                                      Microservices
+Foundation        Exception           Authentication (JWT)
+Users             Handling            Payment
+Addresses         Cart polish         Swagger / OpenAPI
+Categories                            Testing
+Products                              Docker
+Cart                                  Redis
+Orders                                Kafka
+DB Schema                             Microservices
                                       AWS / CI-CD
 
 Module status (synced with FEATURE_ROADMAP.md):
@@ -31,7 +30,7 @@ Module status (synced with FEATURE_ROADMAP.md):
   Categories      ✅  CategoryController, CategoryService
   Products        ✅  ProductController, ProductService
   Cart            ✅  CartController, CartService (polish remaining)
-  Orders          ⬜  DDL in schema.sql only
+  Orders          ✅  OrderController, OrderService (polish remaining)
   Auth            ⬜  Not started
   Exceptions      🔄  Partial — RuntimeException still in category/address services
 
@@ -48,7 +47,7 @@ Phase 2  Database Design     —                           ✅ Done
          —                   Phase 1  Categories+Products ✅ Done
 Phase 3  Auth                Phase 2  JWT + Security      ⬜ Next
 Phase 4  Cart                Phase 3  Cart + Cart Items   ✅ Done (polish)
-Phase 5  Orders              Phase 4  Orders + Checkout   ⬜ Coming
+Phase 5  Orders              Phase 4  Orders + Checkout   ✅ Done (polish)
 Phase 6  Exception Handling  (part of Phase 0)           🔄 In progress
 Phase 7  API Docs            Phase 5  Cross-cutting       ⬜ Not started
 Phase 8  Testing             Phase 5  Cross-cutting       ⬜ Not started
@@ -75,20 +74,21 @@ Tech stack in use:
 
 Project structure (actual):
   ecommerce/
-   ├── controller/     User, Address, Category, Product, Cart, Health
-   ├── service/        User, Address, Category, Product, Cart
-   ├── repository/     IUser, IAddress, ICategory, IProduct, ICart, ICartItem
-   ├── entity/         User, Address, Category, Product, Cart, CartItem
-   ├── dto/            user, address, category, product, cart, common
-   ├── exception/      GlobalExceptionHandler + domain exceptions
+   ├── controller/     User, Address, Category, Product, Cart, Order, Health
+   ├── service/        User, Address, Category, Product, Cart, Order
+   ├── repository/     IUser, IAddress, ICategory, IProduct, ICart, ICartItem, IOrder, IOrderItem
+   ├── entity/         User, Address, Category, Product, Cart, CartItem, Order, OrderItem
+   ├── dto/            user, address, category, product, cart, order, common
+   ├── exception/      GlobalExceptionHandler + domain exceptions (incl. order)
    ├── configs/        EndpointPrinter, StartupSummaryPrinter
-   └── enums/          AddressType
+   └── enums/          AddressType, OrderStatus, PaymentStatus
 
 Branches merged into shopping-module:
 - Setup-the-Foundation  → users, base project
 - address-module        → addresses
 - product-module        → categories + products
 - shopping-module       → cart schema + cart Java
+- oms-module            → orders + checkout (OrderEntity, OrderService, OrderController)
 
 Base URL: /ecommerce/v1
 
@@ -115,10 +115,9 @@ Tables — DDL + seed data:
   products        ✅  → ProductEntity      (FK → categories)
   cart            ✅  → CartEntity         (UNIQUE user_id, FK → users)
   cart_items      ✅  → CartItemEntity     (FK → cart, products)
-  orders          ✅  DDL only              (order_number, payment_status, address FKs)
-  order_items     ✅  DDL only              (price snapshot at checkout)
+  orders          ✅  → OrderEntity           (order_number, payment_status, address FKs)
+  order_items     ✅  → OrderItemEntity       (price snapshot at checkout)
 
-JPA entities missing: OrderEntity, OrderItemEntity
 Relationships: Long FK columns (not @ManyToOne mappings yet)
 
 Learn (completed):
@@ -160,9 +159,18 @@ CART  ✅  /ecommerce/v1/cart
   POST   /createCart, /addItem
   GET    /getCart                  (header: user_id)
   PATCH  /updateQuantity
-  DELETE /removeItem
+  DELETE /removeItem, /clearCart   (clearCart endpoint only — service not implemented)
   Rules: one cart per user, stock checks, merge duplicates, computed totals
   Exceptions: CartNotFoundException, CartItemNotFoundException, OutOfStockException
+
+ORDERS  ✅  /ecommerce/v1/orders
+  POST   /checkout                 (CheckoutRequestDto)
+  GET    /                         (header: user_id — list orders)
+  GET    /{orderId}                (header: user_id — detail with items)
+  PATCH  /{orderId}/cancel         (header: user_id — cancel if CREATED)
+  Rules: @Transactional checkout, price snapshot, stock decrement, cart cleared on order
+  Exceptions: OrderNotFoundException, InvalidOrderStateException, EmptyCartException,
+              AddressNotBelongsToUserException, InactiveUserException, OutOfStockException
 
 HEALTH  ✅
   GET    /                         → welcome message
@@ -170,13 +178,15 @@ HEALTH  ✅
 ================================================================================
 FOUNDATION FIXES (FEATURE_ROADMAP Phase 0)
 ================================================================================
-Status: 🔄 IN PROGRESS — do before Orders
+Status: 🔄 IN PROGRESS
 
 Done:
-  [x] GlobalExceptionHandler for user, product, category, cart exceptions
+  [x] GlobalExceptionHandler for user, product, category, cart, order exceptions
   [x] ProductNotFoundException, CategoryNotFoundException with messages
   [x] UserNotFoundException, UserAlreadyExistsException
   [x] CartNotFoundException, CartItemNotFoundException, OutOfStockException
+  [x] OrderNotFoundException, InvalidOrderStateException, EmptyCartException
+  [x] AddressNotBelongsToUserException, InactiveUserException
   [x] UserService.getUserById returns DTO; email update bug fixed
   [x] AddressController.getAddressesByUserId calls addressService
   [x] Product module returns DTOs; category validation on add/update
@@ -246,7 +256,7 @@ Target paths (after REST + JWT migration):
   DELETE /cart/                      (clear cart)
 
 Remaining polish:
-  [ ] POST /cart/clearCart
+  [ ] Implement CartService.clearCart (DELETE /cart/clearCart endpoint exists)
   [ ] getCart auto-create empty cart (consistent with addItem)
   [ ] Cart item ownership validation on remove/update
   [ ] createCart response — include isActive, timestamps
@@ -258,39 +268,46 @@ Learn (completed):
 ================================================================================
 PHASE 5: ORDER MANAGEMENT (FEATURE_ROADMAP Phase 4)
 ================================================================================
-Status: ⬜ NOT STARTED — after Auth + foundation polish
+Status: ✅ CORE DONE — polish remaining
 
-Schema ready in schema.sql:
-  orders       (order_number, status, payment_status, total_amount, address FKs)
-  order_items  (quantity, price snapshot)
+Schema + JPA:
+  orders       → OrderEntity    (order_number, status, payment_status, total_amount, address FKs)
+  order_items  → OrderItemEntity (quantity, price snapshot)
 
-Flow:
-  Add Product → Add To Cart → Checkout → Create Order → Reduce Inventory
+Flow (implemented):
+  Add Product → Add To Cart → Checkout → Create Order → Reduce Inventory → Clear Cart Items
 
-Build:
-  [ ] OrderEntity, OrderItemEntity
-  [ ] OrderStatus enum (CREATED, CONFIRMED, SHIPPED, CANCELLED, etc.)
-  [ ] IOrderRepository, IOrderItemRepository
-  [ ] OrderService.checkout(userId, shippingAddressId, billingAddressId)
-  [ ] OrderController — checkout, list, detail, cancel
-  [ ] @Transactional checkout (cart → order, decrement stock, clear cart)
-  [ ] OrderNotFoundException, InvalidOrderStateException
+Implemented:
+  [x] OrderEntity, OrderItemEntity
+  [x] OrderStatus, PaymentStatus enums
+  [x] IOrderRepository, IOrderItemRepository
+  [x] OrderService.placeOrder (CheckoutRequestDto) with @Transactional
+  [x] OrderController — checkout, list, detail, cancel
+  [x] OrderNotFoundException, InvalidOrderStateException + handlers
+  [x] EmptyCartException, AddressNotBelongsToUserException, InactiveUserException
 
-Endpoints (planned):
+Endpoints (live):
   POST   /orders/checkout
-  GET    /orders
-  GET    /orders/{orderId}
-  PATCH  /orders/{orderId}/cancel
+  GET    /orders                     (header: user_id)
+  GET    /orders/{orderId}             (header: user_id)
+  PATCH  /orders/{orderId}/cancel      (header: user_id)
 
-Checkout business rules (@Transactional):
+Checkout business rules (@Transactional) — all implemented:
   1. Validate cart not empty
-  2. Validate shipping address belongs to user
+  2. Validate shipping/billing address belongs to user
   3. Re-check stock for every cart item
   4. Create orders row; create order_items with price snapshot
   5. Decrement stock_quantity; clear cart items
   6. Roll back on any failure
 
-Learn:
+Remaining polish:
+  [ ] Frontend checkout / order history UI
+  [ ] OrderService unit + integration tests
+  [ ] Safer order_number generation under concurrency
+  [ ] Resolve userId from JWT (after Auth phase)
+  [ ] Optional JPA @OneToMany / @ManyToOne on order entities
+
+Learn (completed):
 - @Transactional, ACID, Rollback, Concurrency
 
 ================================================================================
@@ -300,7 +317,7 @@ Status: 🔄 PARTIAL (overlaps Foundation Fixes above)
 
 Done:
   @RestControllerAdvice GlobalExceptionHandler
-  User, Product, Category, Cart domain exceptions
+  User, Product, Category, Cart, Order domain exceptions
   MethodArgumentNotValidException → 400
   IllegalArgumentException → 400
 
@@ -422,8 +439,8 @@ Week  Focus                              Status
 3     Categories + Products              ✅ Done
 4     Cart module                        ✅ Done (polish remaining)
 5     Exception handling + bug fixes     🔄 In progress
-6     JWT + Spring Security              ⬜ Next
-7     Orders + Checkout                  ⬜ Coming
+6     Orders + Checkout                  ✅ Done (polish remaining)
+7     JWT + Spring Security              ⬜ Next
 8     Testing (JUnit, Mockito)           ⬜ Coming
 9     Docker + docker-compose            ⬜ Coming
 10    Swagger / OpenAPI                  ⬜ Coming
@@ -435,10 +452,11 @@ RECOMMENDED NEXT STEPS (synced with FEATURE_ROADMAP.md)
 ================================================================================
 
 1. Foundation polish  — exceptions, address DTO validation, empty list behavior
-2. Auth (Phase 3)     — JWT, BCrypt, roles, protect write endpoints
-3. Cart polish        — clearCart, ownership checks, consistent getCart
-4. Orders (Phase 5)   — checkout with @Transactional
+2. Cart polish        — implement clearCart service, ownership checks, consistent getCart
+3. Auth (Phase 3)     — JWT, BCrypt, roles, protect write endpoints
+4. Order polish       — frontend UI, OrderService tests, safer order numbers
 5. Cross-cutting      — Swagger, tests, pagination
+6. Image Processing   — product image upload, resize, optimization (future feature)
 
 ================================================================================
 PORTFOLIO OUTCOME
@@ -447,15 +465,16 @@ PORTFOLIO OUTCOME
 Already demonstrates:
   ✅ Java 21, Spring Boot 3, PostgreSQL, JPA/Hibernate
   ✅ REST APIs, DTO pattern, Validation API, Lombok
-  ✅ Full shopping domain: users → addresses → catalog → cart
+  ✅ Full shopping domain: users → addresses → catalog → cart → orders
   ✅ Custom exceptions + GlobalExceptionHandler
   ✅ Transactional cart + stock validation
+  ✅ Transactional order checkout (ACID: order, items, stock, cart clear)
 
 Will demonstrate after next phases:
   ⬜ JWT Authentication + Spring Security + roles
-  ⬜ Order checkout with @Transactional ACID flow
   ⬜ Swagger, Docker, Tests
   ⬜ Redis, Kafka, AWS (stretch goals)
+  ⬜ Image Processing Service for product images
 
 Supports Backend Engineer / SDE-1 applications with coding and system design
 talking points.
@@ -465,17 +484,19 @@ QUICK REFERENCE — WHAT EXISTS vs WHAT'S NEXT
 ================================================================================
 
 EXISTS NOW:
-  Controllers:  User, Address, Category, Product, Cart, Health
-  Services:     User, Address, Category, Product, Cart
-  Entities:     User, Address, Category, Product, Cart, CartItem
-  Exceptions:   User, Product, Category, Cart-related + GlobalExceptionHandler
-  Enums:        AddressType
+  Controllers:  User, Address, Category, Product, Cart, Order, Health
+  Services:     User, Address, Category, Product, Cart, Order
+  Entities:     User, Address, Category, Product, Cart, CartItem, Order, OrderItem
+  Exceptions:   User, Product, Category, Cart, Order-related + GlobalExceptionHandler
+  Enums:        AddressType, OrderStatus, PaymentStatus
 
 COMING NEXT:
   AuthController, AuthService, SecurityConfig, JwtUtil, JwtAuthFilter
-  OrderController, OrderService, OrderEntity, OrderItemEntity
-  UserRole, OrderStatus enums
-  OrderNotFoundException, InvalidOrderStateException, AddressNotFoundException
+  UserRole enum
+  AddressNotFoundException + handler
+  CartService.clearCart implementation
+  Order frontend UI + OrderService tests
+  Image Processing Service (product images)
 
 See FEATURE_ROADMAP.md for:
   - Full implemented vs target API tables
