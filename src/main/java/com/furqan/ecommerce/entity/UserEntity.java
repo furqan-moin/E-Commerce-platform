@@ -1,5 +1,7 @@
 package com.furqan.ecommerce.entity;
 
+import com.furqan.ecommerce.enums.Role;
+import com.furqan.ecommerce.impl.IUserDetails;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -14,7 +16,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserEntity {
+public class UserEntity implements IUserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
@@ -25,6 +27,11 @@ public class UserEntity {
     private String email;
 
     private String password;
+
+    @Enumerated(EnumType.STRING)
+    private Role role;
+    private Boolean enabled = true;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
     @UpdateTimestamp
@@ -35,6 +42,12 @@ public class UserEntity {
     private String countryCode;
 
     private Boolean isActive;
+
+    private Boolean accountLocked = false;
+
+    private Boolean accountExpired = false;
+
+    private Boolean credentialsExpired = false;
 
     private String language;
 }

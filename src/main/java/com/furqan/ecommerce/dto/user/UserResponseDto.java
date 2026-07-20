@@ -18,6 +18,8 @@ public class UserResponseDto {
     private String countryCode;
     private Boolean isActive;
     private String language;
+    private String role;
+    private Boolean enabled;
     @JsonFormat(pattern = "yyyy-MM-dd' 'HH:mm:ss")
     private LocalDateTime createdAt;
     @JsonFormat(pattern = "yyyy-MM-dd' 'HH:mm:ss")

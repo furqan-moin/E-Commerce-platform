@@ -11,3 +11,13 @@ spring:
 
 server:
   port: 8081
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}          # 256+ bit random string
+    expiration-ms: 900000          # 15 min access token
+    refresh-expiration-ms: 604800000  # 7 days (Step 8)
+
+spring:
+  security:
+  # optional defaults

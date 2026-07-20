@@ -39,6 +39,9 @@ create TABLE users (
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
 
+    role VARCHAR(20) NOT NULL DEFAULT 'CUSTOMER',
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+
     phone_number VARCHAR(20),
     country_code VARCHAR(10) NOT NULL,
 
@@ -46,7 +49,10 @@ create TABLE users (
     language VARCHAR(20) DEFAULT 'english',
 
     created_at TIMESTAMP(0) DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP(0) DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP(0) DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT chk_users_role
+        CHECK (role IN ('CUSTOMER', 'ADMIN', 'MERCHANT'))
 );
 
 -- Sample User
@@ -56,6 +62,7 @@ insert into users (
     last_name,
     email,
     password,
+    role,
     country_code
 )
 values (
@@ -63,6 +70,7 @@ values (
     'Moin',
     'furqan.moin7@gmail.com',
     'password123',
+    'ADMIN',
     '+91'
 );
 

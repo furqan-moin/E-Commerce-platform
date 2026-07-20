@@ -23,6 +23,8 @@ For detailed APIs, business rules, and file checklists see:
 - [`FEATURE_ROADMAP.md`](FEATURE_ROADMAP.md)
 - [`structured-project-plan.docs`](structured-project-plan.docs)
 
+**Frontend (React):** see [`frontend/README.md`](frontend/README.md) — run with `npm run dev` in `frontend/` while backend is on port 8081.
+
 ---
 
 ## Tech Stack

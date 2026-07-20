@@ -60,5 +60,4 @@ public class CategoryController {
     public CategoryResponseDto updateCategory(@Valid @RequestBody CategoryRequestDto categoryRequestDto) {
         return categoryService.updateCategory(categoryRequestDto);
     }
-
 }
