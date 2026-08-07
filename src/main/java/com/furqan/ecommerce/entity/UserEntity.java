@@ -1,7 +1,6 @@
 package com.furqan.ecommerce.entity;
 
 import com.furqan.ecommerce.enums.Role;
-import com.furqan.ecommerce.impl.IUserDetails;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -16,7 +15,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserEntity implements IUserDetails {
+public class UserEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
