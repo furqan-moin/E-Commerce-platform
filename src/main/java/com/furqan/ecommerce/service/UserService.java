@@ -114,6 +114,8 @@ public class UserService {
                 .countryCode(user.getCountryCode())
                 .isActive(user.getIsActive())
                 .language(user.getLanguage())
+                .role(user.getRole() != null ? user.getRole().name() : null)
+                .enabled(user.getEnabled())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();

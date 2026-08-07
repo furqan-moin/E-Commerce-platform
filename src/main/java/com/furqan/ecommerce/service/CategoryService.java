@@ -3,6 +3,7 @@ package com.furqan.ecommerce.service;
 import com.furqan.ecommerce.dto.category.CategoryRequestDto;
 import com.furqan.ecommerce.dto.category.CategoryResponseDto;
 import com.furqan.ecommerce.entity.CategoryEntity;
+import com.furqan.ecommerce.exception.CategoryNotFoundException;
 import com.furqan.ecommerce.repository.ICategoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,47 +29,48 @@ public class CategoryService {
 
     public CategoryResponseDto getCategoryById(Long id) {
         if (id == null) {
-            throw new RuntimeException("categoryId is required");
+            throw new IllegalArgumentException("categoryId is required");
         }
         CategoryEntity categoryEntity = categoryRepository.findById(id).orElseThrow(() ->
-                new RuntimeException("categoryId not found with id: " + id));
+                new CategoryNotFoundException("Category not found with id: " + id));
         return toResponseDto(categoryEntity);
     }
 
     public CategoryResponseDto getCategoryByName(String name) {
-        if (name == null) {
-            throw new RuntimeException("categoryName is required");
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("categoryName is required");
         }
         CategoryEntity categoryEntity = categoryRepository.findByName(name).orElseThrow(() ->
-                new RuntimeException("category name not found with name : " + name));
+                new CategoryNotFoundException("Category not found with name: " + name));
         return toResponseDto(categoryEntity);
     }
 
     public void deleteCategoryById(Long id) {
         if (id == null) {
-            throw new RuntimeException("categoryId is required");
+            throw new IllegalArgumentException("categoryId is required");
         }
-        CategoryEntity categoryEntity = categoryRepository.findById(id).orElseThrow(() ->
-                new RuntimeException("categoryId not found with id: " + id));
+        categoryRepository.findById(id).orElseThrow(() ->
+                new CategoryNotFoundException("Category not found with id: " + id));
         categoryRepository.deleteById(id);
     }
 
     public void deleteCategoryByName(String name) {
-        if (name == null) {
-            throw new RuntimeException("categoryName is required");
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("categoryName is required");
         }
-        CategoryEntity categoryEntity = categoryRepository.findByName(name).orElseThrow(() ->
-                new RuntimeException("categoryName not found with name : " + name));
+        categoryRepository.findByName(name).orElseThrow(() ->
+                new CategoryNotFoundException("Category not found with name: " + name));
         categoryRepository.deleteByName(name);
     }
 
     public CategoryResponseDto updateCategory(CategoryRequestDto categoryRequestDto) {
         if (categoryRequestDto.getCategoryId() == null) {
-            throw new RuntimeException("categoryId is required");
+            throw new IllegalArgumentException("categoryId is required");
         }
         CategoryEntity categoryEntity = categoryRepository
                 .findById(categoryRequestDto.getCategoryId())
-                .orElseThrow(() -> new RuntimeException("categoryId not found with id: " + categoryRequestDto.getCategoryId()));
+                .orElseThrow(() -> new CategoryNotFoundException(
+                        "Category not found with id: " + categoryRequestDto.getCategoryId()));
         applyRequestToEntity(categoryRequestDto, categoryEntity);
         return toResponseDto(categoryRepository.save(categoryEntity));
 

@@ -87,6 +87,16 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
+    @ExceptionHandler(AddressNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleAddressNotFound(AddressNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                ErrorResponse.builder()
+                        .message(e.getMessage())
+                        .status(HttpStatus.NOT_FOUND.value())
+                        .timestamp(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS))
+                        .build());
+    }
+
     @ExceptionHandler(ProductNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleProductNotFound(ProductNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(

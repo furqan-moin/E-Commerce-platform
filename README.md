@@ -23,10 +23,6 @@ For detailed APIs, business rules, and file checklists see:
 - [`FEATURE_ROADMAP.md`](FEATURE_ROADMAP.md)
 - [`structured-project-plan.docs`](structured-project-plan.docs)
 
-**Frontend (React):** see [`frontend/README.md`](frontend/README.md) — run with `npm run dev` in `frontend/` while backend is on port 8081.
-
----
-
 ## Tech Stack
 
 ### In use
@@ -110,14 +106,17 @@ psql -d ecommerce -f schema.sql
 
 ### 2. Configuration
 
-Update `src/main/resources/application.properties` if needed:
+The application reads credentials from environment variables. Set these before starting it:
 
-```properties
-server.port=8081
-spring.datasource.url=jdbc:postgresql://localhost:5432/ecommerce
-spring.datasource.username=postgres
-spring.datasource.password=postgres
+```bash
+export DB_USERNAME=postgres
+export DB_PASSWORD='your-database-password'
+export JWT_SECRET='replace-with-a-long-random-secret'
 ```
+
+`DB_URL` defaults to `jdbc:postgresql://localhost:5432/ecommerce`, and `SERVER_PORT`
+defaults to `8081`. Other optional settings are documented in
+`src/main/resources/application.yaml`.
 
 ### 3. Run
 

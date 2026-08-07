@@ -27,8 +27,13 @@ public class UserEntity {
 
     private String password;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
-    private Role role;
+    @Column(nullable = false)
+    private Role role = Role.CUSTOMER;
+
+    @Builder.Default
+    @Column(nullable = false)
     private Boolean enabled = true;
 
     @CreationTimestamp

@@ -3,6 +3,7 @@ package com.furqan.ecommerce.service;
 import com.furqan.ecommerce.dto.address.AddressRequestDto;
 import com.furqan.ecommerce.dto.address.AddressResponseDto;
 import com.furqan.ecommerce.entity.AddressEntity;
+import com.furqan.ecommerce.exception.AddressNotFoundException;
 import com.furqan.ecommerce.repository.IAddressRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,9 +20,12 @@ public class AddressService {
     }
 
     public List<AddressResponseDto> getAddressesByUserId(Long userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("userId is required");
+        }
         List<AddressEntity> addressEntities = addressRepository.findByUserId(userId);
         if (addressEntities.isEmpty()) {
-            throw new RuntimeException("No address found for user : " + userId);
+            throw new AddressNotFoundException("No addresses found for user: " + userId);
         }
         return addressEntities.stream()
                 .map(this::toResponseDto)
@@ -30,29 +34,32 @@ public class AddressService {
 
     public AddressResponseDto getAddressByAddressId(Long addressId) {
         if (addressId == null) {
-            throw new RuntimeException("addressId is required");
+            throw new IllegalArgumentException("addressId is required");
         }
         AddressEntity addressEntity = addressRepository.findById(addressId).orElseThrow(() ->
-                new RuntimeException("Address not found with address id: " + addressId));
+                new AddressNotFoundException("Address not found with id: " + addressId));
         return toResponseDto(addressEntity);
     }
 
     public void deleteAddressByAddressId(Long addressId) {
-        AddressEntity addressEntity = addressRepository
+        if (addressId == null) {
+            throw new IllegalArgumentException("addressId is required");
+        }
+        addressRepository
                 .findById(addressId)
                 .orElseThrow(() ->
-                        new RuntimeException("address not found with address id: " + addressId));
+                        new AddressNotFoundException("Address not found with id: " + addressId));
         addressRepository.deleteById(addressId);
     }
 
-    public AddressResponseDto updateAddress( Long addressId,AddressRequestDto addressRequestDto) {
-        if (addressRequestDto.getAddressId() == null) {
-            throw new RuntimeException("address_id is required to update address");
+    public AddressResponseDto updateAddress(Long addressId, AddressRequestDto addressRequestDto) {
+        if (addressId == null) {
+            throw new IllegalArgumentException("addressId is required to update address");
         }
         AddressEntity addressEntity = addressRepository
-                .findById(addressRequestDto.getAddressId())
+                .findById(addressId)
                 .orElseThrow(() ->
-                        new RuntimeException("address not found with address id: " + addressRequestDto.getAddressId()));
+                        new AddressNotFoundException("Address not found with id: " + addressId));
         applyRequestToEntity(addressRequestDto, addressEntity);
         return toResponseDto(addressRepository.save(addressEntity));
 
