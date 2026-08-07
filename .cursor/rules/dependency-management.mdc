@@ -1,0 +1,63 @@
+---
+description: Maven and Spring Boot dependency management rules for the Java 21 backend
+alwaysApply: true
+---
+
+# Dependency Management
+
+## Purpose
+
+Keep the Maven build minimal, reproducible, compatible with Spring Boot 3.5, and free of speculative technology.
+
+## Scope
+
+Apply to `pom.xml`, Maven plugins, dependency scopes, version alignment, and dependency-related documentation.
+
+## Mandatory Rules
+
+- Use Maven and the existing Spring Boot parent. Do not add Gradle, Node package managers, or a second build system.
+- Preserve Java 21 in `<java.version>` and ensure any added library supports Java 21 and Spring Boot 3.5/Jakarta namespaces.
+- Prefer Spring Boot dependency management; omit explicit versions for dependencies managed by the Boot BOM.
+- Keep explicitly versioned library families aligned. The three JJWT artifacts must use the same version.
+- Use correct scopes: PostgreSQL and JJWT implementations at runtime, test libraries at test scope, and Lombok optional/annotation-processor only.
+- Before adding a dependency, search the JDK, Spring Boot starters, and current dependencies for the required capability.
+- Do not add Redis, Kafka, AWS, MapStruct, Flyway, Liquibase, Testcontainers, OpenAPI, Docker tooling, or tracing libraries merely because roadmap documents mention them.
+- If a new technology is explicitly required, add the smallest supported dependency set, configuration, tests, and documentation in one coherent change.
+- Never add repositories, mirrors, credentials, or tokens to `pom.xml`.
+- Run `mvn test` after dependency changes and inspect `mvn dependency:tree` when resolving version or classpath conflicts.
+
+## Best Practices
+
+- Prefer a Spring starter when it is the supported integration boundary.
+- Remove dependencies that are proven unused, but confirm transitive/runtime behavior first.
+- Keep plugin configuration explicit only when the default is insufficient.
+- Record why a non-obvious direct dependency is necessary in a concise XML comment or documentation.
+- Review security and maintenance status before selecting a new library; choose stable releases compatible with the Boot BOM.
+
+## Anti Patterns
+
+- Pinning a Spring-managed artifact to an arbitrary newer version.
+- Adding multiple libraries for the same concern.
+- Using compile scope for test-only or runtime-only code.
+- Adding a dependency to avoid writing a small amount of straightforward Java.
+- Suppressing convergence or vulnerability problems without documenting the tradeoff.
+
+## Examples
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-validation</artifactId>
+</dependency>
+```
+
+Do not add a version because the Spring Boot parent manages it.
+
+## Checklist
+
+- [ ] The dependency is necessary and not already available.
+- [ ] Java 21, Spring Boot 3.5, and Jakarta compatibility were checked.
+- [ ] Version and scope follow Maven/Boot conventions.
+- [ ] No speculative roadmap technology was added.
+- [ ] Configuration, tests, and docs accompany the dependency.
+- [ ] `mvn test` passes and dependency conflicts were inspected.

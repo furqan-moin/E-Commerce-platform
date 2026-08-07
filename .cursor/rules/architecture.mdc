@@ -1,0 +1,71 @@
+---
+description: Architecture boundaries for the Java 21 Spring Boot e-commerce backend
+alwaysApply: true
+---
+
+# Architecture
+
+## Purpose
+
+Keep generated code aligned with this repository's layered Spring Boot monolith and existing commerce domain.
+
+## Scope
+
+Apply to all code under `src/main/java/com/furqan/ecommerce`, tests, configuration, and schema changes.
+
+## Mandatory Rules
+
+- Treat this repository as a Java 21, Spring Boot 3.5 Maven application. Do not introduce another runtime or frontend.
+- Preserve the current layered package layout: `controller`, `service`, `repository`, `entity`, `dto/<domain>`, `exception`, `enums`, `configs`, `security`, and `authentication`.
+- Keep dependency flow one-way: controller -> service -> repository. Controllers must not access repositories, and repositories must not contain business logic.
+- Put cross-aggregate business workflows and transaction boundaries in services. Checkout and cart mutation belong in `OrderService` and `CartService`, not controllers.
+- Use request/response DTOs at HTTP boundaries. Do not expose new JPA entities directly from controllers, even though a few legacy list endpoints still do.
+- Keep persistence entities in `entity` and Spring Data interfaces in `repository`. Match the existing scalar `Long` foreign-key style unless a requirement explicitly authorizes a relationship migration.
+- Reuse domain exceptions and `GlobalExceptionHandler`; never make controllers translate repository failures ad hoc.
+- Treat the classes in `authentication` and most classes in `security` as incomplete placeholders. Do not claim JWT authentication is implemented until those classes contain working Spring components and tests.
+- Do not introduce microservices, event-driven architecture, CQRS, caching, or a new module boundary without an explicit requirement and dependency review.
+
+## Best Practices
+
+- Search the same domain package for a similar controller/service/repository/DTO flow before creating a new abstraction.
+- Prefer constructor injection through Lombok `@RequiredArgsConstructor` for Spring components.
+- Keep mapping functions such as `toResponseDto` private to the service while mappings remain small; introduce a mapper dependency only when repeated mapping complexity justifies it.
+- Model state with the existing enums (`Role`, `AddressType`, `OrderStatus`, `PaymentStatus`) rather than free-form strings.
+- Keep controllers thin: validate transport input, delegate once, and return the service result or an intentional HTTP response.
+- Preserve backward compatibility for existing `/ecommerce/v1` contracts unless an API migration is explicitly requested.
+
+## Anti Patterns
+
+- Calling `JpaRepository` directly from a controller.
+- Returning `UserEntity` or another entity from a new endpoint.
+- Putting checkout, stock, or ownership rules in DTOs or controllers.
+- Creating a generic utility layer that hides domain behavior.
+- Duplicating the incomplete JWT classes in both `authentication` and `security`.
+- Adding Redis, Kafka, Docker, or cloud SDK code because roadmap documents mention them as future work.
+
+## Examples
+
+```java
+@RestController
+@RequestMapping("/ecommerce/v1/products")
+@RequiredArgsConstructor
+class ProductController {
+    private final ProductService productService;
+
+    @GetMapping("/{productId}")
+    ProductResponseDto getProduct(@PathVariable Long productId) {
+        return productService.getProductById(productId);
+    }
+}
+```
+
+This is acceptable because the controller delegates to a service and returns a DTO. A controller injecting `IProductRepository` is not acceptable.
+
+## Checklist
+
+- [ ] Code is in the existing package layer and domain subpackage.
+- [ ] Controller, service, and repository responsibilities are separated.
+- [ ] HTTP responses use DTOs rather than JPA entities.
+- [ ] Transactional workflows remain service-owned.
+- [ ] No future-roadmap technology was invented.
+- [ ] Existing API behavior remains compatible or the migration is documented.

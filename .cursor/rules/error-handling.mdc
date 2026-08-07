@@ -1,0 +1,61 @@
+---
+description: Domain exception and HTTP error response rules for GlobalExceptionHandler
+alwaysApply: true
+---
+
+# Error Handling
+
+## Purpose
+
+Generate predictable domain failures and safe HTTP error responses across every module.
+
+## Scope
+
+Apply to services, controllers, validation, repository failure translation, exception types, and `GlobalExceptionHandler`.
+
+## Mandatory Rules
+
+- Throw narrowly named domain exceptions from services: existing examples include `UserNotFoundException`, `AddressNotFoundException`, `CategoryNotFoundException`, `OutOfStockException`, `EmptyCartException`, and `InvalidOrderStateException`.
+- Use `IllegalArgumentException` only for invalid or missing service inputs that map to HTTP 400 under the current handler.
+- Never add a generic `RuntimeException` for an expected business or lookup failure.
+- Map missing resources to 404, validation/invalid input to 400, duplicate/state/stock conflicts to 409, authentication to 401, and authorization/ownership to 403 once security is implemented.
+- Build HTTP failures through `ErrorResponse` with `message`, numeric `status`, and a seconds-truncated `LocalDateTime` timestamp.
+- Add every new expected exception to `GlobalExceptionHandler` and add a handler test.
+- Translate expected database constraint failures into stable domain errors. Do not expose SQL, table names, connection strings, or stack traces.
+- Preserve transaction rollback by allowing write-path exceptions to escape the transactional service.
+- For unexpected failures, log diagnostic context server-side and return a generic 500 response; never return `exception.getMessage()` blindly if it may include infrastructure details.
+
+## Best Practices
+
+- Centralize repeated `ErrorResponse` construction in a private handler helper when refactoring the existing advice.
+- Use messages that identify the resource and safe identifier without leaking personal data.
+- Validate DTO inputs before repository calls so malformed requests fail deterministically.
+- Distinguish an empty valid collection from a missing singular resource based on the endpoint contract.
+- Test both service exception selection and HTTP status/body mapping.
+
+## Anti Patterns
+
+- Catching a domain exception in a controller and returning an arbitrary status.
+- Returning 500 for a known missing category or address.
+- Catching and ignoring database or transaction exceptions.
+- Including passwords, JWTs, authorization headers, or request bodies in error messages.
+- Returning different response shapes for each exception.
+
+## Examples
+
+```java
+AddressEntity address = addressRepository.findById(addressId)
+        .orElseThrow(() -> new AddressNotFoundException(
+                "Address not found with id: " + addressId));
+```
+
+The corresponding advice must return the common `ErrorResponse` shape with HTTP 404.
+
+## Checklist
+
+- [ ] Expected failures use domain-specific exceptions.
+- [ ] HTTP status semantics are correct and consistent.
+- [ ] A new exception has advice and tests.
+- [ ] Transactional failures are not swallowed.
+- [ ] Infrastructure and sensitive details cannot reach clients.
+- [ ] Error response shape remains stable.

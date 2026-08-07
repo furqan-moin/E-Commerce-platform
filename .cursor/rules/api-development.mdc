@@ -1,0 +1,66 @@
+---
+description: REST API generation rules for the Spring MVC ecommerce endpoints
+alwaysApply: true
+---
+
+# API Development
+
+## Purpose
+
+Keep generated Spring MVC endpoints compatible, validated, secureable, and consistent with the existing `/ecommerce/v1` API.
+
+## Scope
+
+Apply to controllers, request/response DTOs, validation annotations, endpoint documentation, and HTTP-facing exception behavior.
+
+## Mandatory Rules
+
+- Preserve the base prefix `/ecommerce/v1`.
+- Inspect the actual controller before changing a route. The repository currently mixes legacy verb paths/header IDs with REST-style order path variables; do not silently rename or remove existing endpoints.
+- For new endpoints, prefer resource-oriented paths and path variables, but add them compatibly or as an explicit migration when legacy clients may exist.
+- Accept JSON through typed request DTOs annotated with Jakarta Validation. Put transport validation (`@NotNull`, `@NotBlank`, `@Min`, `@Email`) on DTO fields and use `@Valid` on request bodies.
+- Return response DTOs, never new entity responses. Keep passwords and internal security/account fields out of responses unless explicitly safe and required.
+- Use the authenticated principal for user identity once security is implemented. Never add a new protected endpoint that trusts a caller-supplied `user_id` header or body field as authorization.
+- Route failures through domain exceptions and `GlobalExceptionHandler` so validation is 400, missing resources are 404, and state/stock conflicts are 409.
+- Keep enum JSON values aligned with the uppercase enum constants unless a documented serialization change is required.
+- Update README and roadmap endpoint tables whenever a controller contract changes.
+
+## Best Practices
+
+- Return `ResponseEntity` when status, headers, or an empty body matter; otherwise a response DTO is consistent with current controllers.
+- Use `201 Created` plus a location header for a newly designed create endpoint when backward compatibility permits it.
+- Return an empty list for a valid collection query unless the established endpoint explicitly treats absence as not found.
+- Separate create and patch DTOs when their required-field semantics differ.
+- Keep controllers free of mapping, persistence, stock calculations, and ownership checks.
+- Add pagination before exposing an unbounded new list endpoint; do not extend the existing `findAll` pattern to high-volume resources.
+
+## Anti Patterns
+
+- Using a request header identifier as proof of identity or ownership.
+- Returning stack traces, exception class names, passwords, JWTs, or database details.
+- Binding arbitrary JSON to a `Map<String, Object>`.
+- Returning `200 OK` for validation or not-found failures.
+- Renaming `/createUser`, `/addProduct`, or other existing routes as an unrelated cleanup inside a feature change.
+
+## Examples
+
+```java
+@GetMapping("/{orderId}")
+public OrderResponseDto getOrder(
+        @PathVariable Long orderId,
+        Authentication authentication) {
+    return orderService.getOrderById(orderId, authenticatedUserId(authentication));
+}
+```
+
+Use this pattern only after authentication is implemented. Do not replace `Authentication` with a caller-controlled `user_id` for new protected APIs.
+
+## Checklist
+
+- [ ] Existing route compatibility was checked.
+- [ ] Request input uses a typed, validated DTO.
+- [ ] Response content uses a safe response DTO.
+- [ ] Identity and ownership are not trusted from caller-supplied IDs.
+- [ ] Error status semantics match `GlobalExceptionHandler`.
+- [ ] List volume and pagination were considered.
+- [ ] Endpoint documentation was updated.

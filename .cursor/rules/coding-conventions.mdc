@@ -1,0 +1,71 @@
+---
+description: Java and Spring coding conventions inferred from the e-commerce codebase
+alwaysApply: true
+---
+
+# Coding Conventions
+
+## Purpose
+
+Make generated Java code read like the existing Spring Boot code while correcting known consistency hazards.
+
+## Scope
+
+Apply to Java production and test sources in `src/main/java` and `src/test/java`.
+
+## Mandatory Rules
+
+- Target Java 21 and Spring Boot 3.5 APIs. Do not use preview language features.
+- Use package prefix `com.furqan.ecommerce` and the existing layer/domain package structure.
+- Use four-space indentation, braces on the same line, one public top-level type per file, and explicit imports rather than wildcards in newly written code.
+- Name types in PascalCase, methods and fields in camelCase, constants in `UPPER_SNAKE_CASE`, DTOs with `RequestDto`/`ResponseDto`, entities with `Entity`, and repositories with the existing `I...Repository` convention.
+- Use constructor injection. For Spring components, prefer `private final` collaborators plus `@RequiredArgsConstructor`; never add field injection.
+- Use Lombok only where already conventional: `@Getter`/`@Setter`/`@Data`, `@Builder`, constructors, and `@RequiredArgsConstructor`. Add `@Builder.Default` whenever a field initializer must survive Lombok builder creation.
+- Use `BigDecimal` for prices, totals, and line amounts. Never use `double` or `float` for money.
+- Use `Long` for persisted identifiers and `LocalDateTime` for the repository's current timestamp model.
+- Use `@Enumerated(EnumType.STRING)` for persisted enums.
+- Use typed DTOs rather than `Map<String, Object>` for new request contracts.
+- Use `Optional` at repository boundaries, then resolve it in the service with a domain exception. Do not return `Optional` from controllers.
+- Compare nullable booleans safely, for example `Boolean.FALSE.equals(user.getIsActive())`.
+- Do not throw a generic `RuntimeException`. Use an existing domain exception or add a narrowly named exception and map it in `GlobalExceptionHandler`.
+
+## Best Practices
+
+- Keep methods small enough to reveal domain steps; extract validation and DTO mapping helpers when repeated.
+- Use `BigDecimal.valueOf(quantity)` instead of constructing a decimal from a floating-point value.
+- Prefer immutable local variables and stream transformations for simple repository-to-DTO lists.
+- Keep entity defaults consistent with `schema.sql` defaults and nullability constraints.
+- Preserve exact domain terminology: `cartItemId`, `shippingAddressId`, `billingAddressId`, `stockQuantity`, and `paymentStatus`.
+- Remove unused imports, dead interfaces, duplicate assignments, and commented-out implementations when safely in scope.
+
+## Anti Patterns
+
+- `@Autowired` fields or mutable injected collaborators.
+- Monetary arithmetic with primitives.
+- Builder field initializers without `@Builder.Default`.
+- Raw request maps, unchecked casts, or stringly typed enum/state handling.
+- Catching `Exception` and silently continuing in business logic.
+- Creating `Util`, `Helper`, or `Manager` classes for behavior that belongs to a domain service.
+
+## Examples
+
+```java
+@Builder.Default
+@Enumerated(EnumType.STRING)
+@Column(nullable = false)
+private Role role = Role.CUSTOMER;
+
+BigDecimal lineTotal = product.getPrice()
+        .multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+```
+
+Do not generate `double total = price * quantity` or a builder-backed default without `@Builder.Default`.
+
+## Checklist
+
+- [ ] Names and packages match existing conventions.
+- [ ] Injection is constructor-based.
+- [ ] Money uses `BigDecimal`.
+- [ ] DTOs, identifiers, timestamps, and enums use repository-standard types.
+- [ ] Builder defaults are preserved explicitly.
+- [ ] No generic `RuntimeException`, raw request map, or unused code was added.

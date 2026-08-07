@@ -1,0 +1,70 @@
+---
+description: JUnit 5, Mockito, Spring MVC, security, and PostgreSQL testing rules
+alwaysApply: true
+---
+
+# Testing Principles
+
+## Purpose
+
+Generate reliable tests that verify commerce behavior rather than only compilation.
+
+## Scope
+
+Apply to all tests under `src/test`, Maven test dependencies, fixtures, and test-specific configuration.
+
+## Mandatory Rules
+
+- Use JUnit 5. The repository uses `org.junit.jupiter` through `spring-boot-starter-test`.
+- Use Mockito for isolated service tests and constructor-inject mocked repositories/services. Follow the existing tests in `src/test/java/com/furqan/ecommerce/service`.
+- Name tests by observable behavior, such as `missingAddressUsesDomainException`, not by implementation method sequence.
+- Cover success, invalid input, missing resources, duplicates, ownership violations, stock conflicts, inactive users, and invalid order states where applicable.
+- Verify side effects for write workflows: saved entities, stock decrements/restoration, cart-item deletion, and absence of writes after failure.
+- Add transaction/integration coverage for checkout and concurrency-sensitive persistence changes. Do not treat mocked repository tests as proof of PostgreSQL correctness.
+- Use Spring MVC tests (`MockMvc`, JsonPath) for request validation, serialization, response status, and `GlobalExceptionHandler` behavior.
+- Use `spring-security-test` for authentication and role/ownership behavior once security endpoints and filters are implemented.
+- Keep tests independent of a developer's local PostgreSQL and `.env`. Unit tests must run with `mvn test` without live infrastructure.
+- Do not use Testcontainers unless its dependency and lifecycle are deliberately added. If added, use a PostgreSQL container matching production semantics rather than H2 for database integration.
+- Run `mvn test` after changes and report the exact test count and failures.
+
+## Best Practices
+
+- Use Arrange/Act/Assert structure with minimal fixtures.
+- Capture repository arguments when defaults, mappings, or mutation values matter.
+- Use deterministic timestamps/IDs where generation affects assertions.
+- Test boundary quantities: zero, one, exact stock, stock plus one, empty cart, and maximum supported values.
+- Add concurrent checkout tests when implementing locks, versions, or atomic stock updates.
+- Prefer small service tests plus a few high-value HTTP/database integration tests over a large application-context test for every method.
+
+## Anti Patterns
+
+- Tests that only assert a mock method was called without checking business results.
+- Tests requiring the developer's database, port 8081, or real credentials.
+- Swallowing exceptions or using broad `assertThrows(RuntimeException.class)` when a domain exception exists.
+- Adding sleeps to test concurrency.
+- Disabling tests to obtain a green build.
+- Claiming `mvn test` validates runtime behavior when there are no relevant tests.
+
+## Examples
+
+```java
+@Test
+void quantityAboveStockIsRejectedWithoutSaving() {
+    when(productRepository.findById(7L)).thenReturn(Optional.of(productWithStock(2)));
+
+    assertThrows(OutOfStockException.class,
+            () -> cartService.updateQuantity(updateRequest(10L, 3)));
+
+    verify(cartItemRepository, never()).save(any());
+}
+```
+
+## Checklist
+
+- [ ] Tests use JUnit 5 and repository-standard tools.
+- [ ] Success and domain failure paths are covered.
+- [ ] Write side effects and no-write-on-failure are asserted.
+- [ ] HTTP/security/database tests are used at the appropriate boundary.
+- [ ] Tests require no local secrets or services.
+- [ ] Concurrency-sensitive code has deterministic concurrency coverage.
+- [ ] `mvn test` passes.

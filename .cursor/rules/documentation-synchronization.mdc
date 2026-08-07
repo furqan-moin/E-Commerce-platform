@@ -1,0 +1,56 @@
+---
+description: Synchronize repository documentation with implemented APIs, schema, configuration, and status
+alwaysApply: true
+---
+
+# Documentation Synchronization
+
+## Purpose
+
+Prevent README and roadmap claims from drifting away from the running Spring Boot backend.
+
+## Scope
+
+Apply to `README.md`, `FEATURE_ROADMAP.md`, `structured-project-plan.docs`, `schema.sql` comments/diagrams, examples, and any future architecture or API documentation.
+
+## Mandatory Rules
+
+- Update documentation in the same change whenever implementation affects API paths, headers, bodies, response fields, status codes, configuration, schema, roles, order states, or startup instructions.
+- Verify documentation against actual annotations and code. Do not copy stale roadmap statements into new docs.
+- Distinguish implemented behavior from planned behavior. Empty authentication/security classes are not an implemented JWT feature.
+- Use the actual base prefix `/ecommerce/v1`, actual controller paths, and actual custom health endpoint `/health`.
+- Keep environment variable documentation aligned with `application.yaml`: required credentials are `DB_USERNAME`, `DB_PASSWORD`, and `JWT_SECRET`; optional values use the defaults declared in YAML.
+- When the database model changes, update `schema.sql`, the roadmap data model, constraints/index descriptions, and setup or migration instructions.
+- When an implementation phase changes, update status tables and checklists rather than leaving contradictory “not started” and implemented claims.
+- Remove references to deleted frontend/static UI code. Do not recreate frontend instructions unless frontend code is explicitly reintroduced.
+- Update Mermaid diagrams when relationships, ownership, or workflow ordering changes; keep node labels and fields consistent with code.
+
+## Best Practices
+
+- Document both legacy and target APIs only when the distinction is explicit and current.
+- Include exact runnable Maven and PostgreSQL commands, but use placeholders for credentials.
+- Link to source documents using repository-relative Markdown paths.
+- Keep examples minimal and executable; do not show insecure default secrets or plaintext production passwords.
+- Add a migration note when a change requires consumers or existing database rows to adapt.
+
+## Anti Patterns
+
+- Marking JWT, Swagger, Docker, Redis, Kafka, AWS, or a frontend as present because it appears in a future roadmap.
+- Documenting `/` as health when the controller maps `/health`.
+- Claiming a `clearCart` endpoint exists without verifying `CartController`.
+- Leaving `application.properties` instructions after configuration has been consolidated into YAML.
+- Embedding a real secret, token, email credential, or local `.env` value in examples.
+
+## Examples
+
+If `OrderController` changes cancellation from `PATCH /{orderId}/cancel` to another contract, update the README API table, the implemented endpoint section in `FEATURE_ROADMAP.md`, failure/status documentation, and any client migration note in the same patch.
+
+## Checklist
+
+- [ ] Controller routes and docs match exactly.
+- [ ] Implemented versus planned status is accurate.
+- [ ] Configuration names/defaults match `application.yaml`.
+- [ ] Schema, constraints, indexes, and diagrams match entities/database changes.
+- [ ] Deleted technologies have no remaining setup instructions.
+- [ ] Examples contain placeholders, not secrets.
+- [ ] Migration or compatibility impact is documented.

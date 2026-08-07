@@ -1,0 +1,65 @@
+---
+description: Safe Git workflow and commit conventions for this repository
+alwaysApply: true
+---
+
+# Git Workflow
+
+## Purpose
+
+Keep AI-generated changes reviewable while protecting existing work and sensitive files.
+
+## Scope
+
+Apply to branch creation, diffs, staging, commits, rebases, pushes, pull requests, and ignored/generated files.
+
+## Mandatory Rules
+
+- Inspect `git status --short --branch` before editing and before handoff. Existing modifications belong to the user unless the task clearly owns them.
+- Do not create/switch branches, stage, commit, push, rebase, or open a pull request unless the user explicitly requests that action.
+- Never discard unrelated changes with reset, checkout, clean, stash, or force operations.
+- Keep changes scoped to one coherent objective; separate feature, refactor, documentation, and dependency work when they can be reviewed independently.
+- Follow the repository's observed commit style: `<TYPE>(scope): imperative summary`, using types such as `FEAT`, `FIX`, `TEST`, `DOCS`, `REFACTOR`, or `CHORE`.
+- Review staged content before committing. Do not stage `target/`, IDE workspace files, logs, local database artifacts, or generated secrets.
+- Never stage or commit `.env`, JWT secrets, database passwords, tokens, or credentials. The currently tracked `.env` requires deliberate remediation and secret rotation, not casual copying.
+- Do not force-push or rewrite shared history unless explicitly authorized and the exact branch is confirmed.
+- Run relevant tests before commit and report any unavailable verification honestly.
+- Update documentation in the same commit when it is inseparable from the behavior/configuration change.
+
+## Best Practices
+
+- Use a short topic branch when requested; keep its name descriptive and aligned with the task.
+- Write commit subjects in the imperative mood and explain non-obvious compatibility or migration decisions in the body.
+- Use `git diff --check`, `git diff`, and `git diff --cached` to catch whitespace, scope, and staging mistakes.
+- Preserve file history by editing/moving intentionally rather than deleting and recreating without reason.
+- Keep test fixtures deterministic and avoid committing Maven `target` output.
+
+## Anti Patterns
+
+- `git add .` without inspecting untracked files.
+- Bundling security, REST migration, schema changes, and unrelated cleanup in one commit.
+- Committing a failing build without an explicit, documented reason.
+- Amending or rebasing commits the user may already have shared.
+- Adding secrets and relying on a later `.gitignore` entry to protect them.
+
+## Examples
+
+Good subjects:
+
+```text
+FIX(users): apply schema-compatible account defaults
+TEST(addresses): cover not-found error mapping
+DOCS(config): document required environment variables
+```
+
+Avoid vague subjects such as `changes`, `updates`, or `fix stuff`.
+
+## Checklist
+
+- [ ] Initial and final Git status were inspected.
+- [ ] Unrelated work was preserved.
+- [ ] Diff and staged diff contain only intended files.
+- [ ] No secret, `.env`, IDE, or build output is staged.
+- [ ] Tests were run and results are known.
+- [ ] Commit/branch/push actions were explicitly authorized.
+- [ ] Commit message follows the observed convention.

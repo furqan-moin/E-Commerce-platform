@@ -1,0 +1,60 @@
+---
+description: Repository-specific review criteria and severity guidance for generated changes
+alwaysApply: true
+---
+
+# Code Review
+
+## Purpose
+
+Make AI review changes for correctness, data integrity, security, compatibility, and maintainability before presenting them as complete.
+
+## Scope
+
+Apply to reviews of Java code, tests, Maven/configuration, PostgreSQL schema, documentation, and Git diffs.
+
+## Mandatory Rules
+
+- Review the diff in repository context, not as isolated syntax. Inspect callers, DTOs, schema constraints, exception mappings, tests, and docs affected by the change.
+- Prioritize concrete defects over style comments. Rank findings as P0 critical, P1 high, P2 medium, or P3 minor.
+- Check architecture: controllers delegate, services own business rules/transactions, repositories own persistence, and DTOs protect HTTP boundaries.
+- Check security: no plaintext passwords, secrets, token logging, role inference, caller-controlled authorization, or missing ownership checks.
+- Check data integrity: entity/schema alignment, nullability/defaults, `BigDecimal`, enum strings, foreign keys, unique constraints, and rollback behavior.
+- Check concurrency: stock changes, cart uniqueness, cancellation restoration, and order-number generation must remain correct with parallel requests.
+- Check API compatibility: paths, headers, request validation, response DTOs, status codes, and error shape.
+- Check performance: N+1 queries, unbounded `findAll`, missing indexes, repeated loads, long transactions, and high-cardinality metrics.
+- Check tests: behavior and failure paths are asserted, no local database/secrets are required, and `mvn test` passes.
+- Check documentation: README, roadmap, schema, config variables, and implementation status match code.
+- Check scope: preserve unrelated user changes and flag accidental formatting, generated files, secret files, or frontend recreation.
+- Do not report a speculative issue as certain. State the triggering input/concurrency state and impact.
+
+## Best Practices
+
+- Lead each finding with the outcome and reference the tightest file/line range.
+- Explain why existing validation, transactions, or database constraints do or do not prevent the issue.
+- Separate confirmed defects from optional design improvements.
+- If no actionable findings remain, say so and list residual verification gaps such as unavailable PostgreSQL integration tests.
+- Re-run targeted tests after fixes and then the full Maven test suite.
+
+## Anti Patterns
+
+- Approving code because it compiles.
+- Treating roadmap plans as current implementation.
+- Reporting generic “add more tests” without naming the missing behavior.
+- Focusing on formatting while ignoring ownership, transactions, or schema constraints.
+- Rewriting code during a review-only request.
+- Claiming live API verification when PostgreSQL was unavailable.
+
+## Examples
+
+A useful finding is: “P1: `OrderService` validates stock and saves later without a lock; two concurrent checkouts can both observe stock 1 and commit orders, overselling the product.” A weak finding is: “Concurrency may be an issue.”
+
+## Checklist
+
+- [ ] Architecture and DTO boundaries were reviewed.
+- [ ] Security and ownership were reviewed.
+- [ ] Schema, transactions, and concurrency were reviewed.
+- [ ] API compatibility and error semantics were reviewed.
+- [ ] Performance and observability were reviewed.
+- [ ] Tests and documentation were reviewed.
+- [ ] Findings are prioritized, reproducible, and tightly referenced.

@@ -1,0 +1,61 @@
+---
+description: Logging, Actuator health, Micrometer metrics, and diagnostic context rules
+alwaysApply: true
+---
+
+# Observability
+
+## Purpose
+
+Generate diagnostics that explain API and commerce failures without exposing sensitive information or creating noisy output.
+
+## Scope
+
+Apply to application logging, Spring Boot Actuator, Micrometer metrics available through Actuator, health endpoints, and request correlation.
+
+## Mandatory Rules
+
+- Use SLF4J (`@Slf4j` or `LoggerFactory`) for new logging. Do not add `System.out.println` or `System.err.println`.
+- Log at domain boundaries and exceptional outcomes, not every repository call or loop iteration.
+- Never log passwords, JWTs, signing secrets, database credentials, authorization headers, or full user/address payloads.
+- Include safe identifiers such as order ID, product ID, cart ID, and a correlation ID when available; do not use email or address text as routine identifiers.
+- Preserve `/actuator/health` for operational health and `/health` as the current custom welcome endpoint until intentionally consolidated.
+- Keep Actuator exposure at `health,info` by default. Any additional endpoint requires a security and operational justification.
+- Use Micrometer through Actuator for meaningful counters/timers. Metric tag values must be bounded enums or outcomes, never user IDs, order IDs, emails, names, or URLs with IDs.
+- Do not claim distributed tracing or correlation is present. If introduced, add one request filter/interceptor, propagate the ID through MDC, return it safely, and test cleanup between requests.
+- Avoid logging the same exception in the service and global handler unless each log adds distinct context.
+
+## Best Practices
+
+- Use parameterized logs: `log.warn("Checkout rejected for productId={} outcome={}", productId, outcome)`.
+- Emit business metrics for checkout success/failure, stock conflict, and cancellation only when their names and bounded tags are documented.
+- Use timers around external or database-heavy workflows, not trivial getters.
+- Make health indicators test connectivity without exposing versions, credentials, or raw exception messages.
+- Replace temporary startup printouts with structured logs when editing `StartupSummaryPrinter` or `JwtPropertyVerifier`.
+
+## Anti Patterns
+
+- Printing configuration values during startup.
+- Logging complete request/response bodies for users, authentication, checkout, or addresses.
+- Metrics tagged by `userId`, `orderId`, `productName`, or exception message.
+- Exposing `/actuator/env`, `/actuator/configprops`, or `/actuator/mappings` publicly.
+- Catching an exception solely to log and then treating the operation as successful.
+
+## Examples
+
+```java
+log.warn("Order cancellation rejected orderId={} status={}",
+        order.getOrderId(), order.getStatus());
+checkoutCounter.increment();
+```
+
+Do not include the JWT, customer email, address, or unbounded exception text in the event or metric tags.
+
+## Checklist
+
+- [ ] Logging uses SLF4J and an appropriate level.
+- [ ] Logs contain safe context and no secrets/PII payloads.
+- [ ] Metrics are meaningful and low-cardinality.
+- [ ] Actuator exposure remains restricted.
+- [ ] Health behavior matches documentation.
+- [ ] Correlation/tracing is only referenced if actually implemented.

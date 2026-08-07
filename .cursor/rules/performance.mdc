@@ -1,0 +1,65 @@
+---
+description: Performance and concurrency rules for catalog, cart, order, and PostgreSQL operations
+alwaysApply: true
+---
+
+# Performance
+
+## Purpose
+
+Keep generated code efficient under realistic catalog and checkout load without inventing an unavailable cache or broker.
+
+## Scope
+
+Apply to service algorithms, repository queries, database access, pagination, transaction duration, concurrency, and serialization.
+
+## Mandatory Rules
+
+- Do not add Redis, Caffeine, Kafka, or another performance technology; none is implemented in this repository.
+- Avoid N+1 repository calls. Existing cart/order mapping loads products in loops; new code must batch-load referenced products or use a focused query when item counts can grow.
+- Do not expose new unbounded `findAll()` endpoints. Use Spring Data `Pageable`/`Page` for products, users, orders, or other growing collections.
+- Keep transactions short and free of network calls. Perform only the database work needed for one atomic business operation.
+- Make checkout stock updates concurrency-safe with locking, versioning, or an atomic conditional update; validation before an unlocked save is insufficient.
+- Use a collision-safe order-number strategy rather than `repository.count() + 1`.
+- Select only required data for large reads and avoid serializing entities with accidental relationship graphs.
+- Add or validate PostgreSQL indexes for new foreign-key filters, ownership queries, search predicates, and sort keys.
+- Measure before adding caching or asynchronous execution, and document the measured bottleneck.
+
+## Best Practices
+
+- Build a `Map<Long, ProductEntity>` from one `findAllById` call when mapping cart/order items.
+- Return summary DTOs for order lists and detailed items only on detail endpoints, matching the current service intent.
+- Use database uniqueness and atomic updates as final concurrency guards.
+- Keep `BigDecimal` calculations linear and reuse already-loaded product prices within a transaction.
+- Add performance or concurrency tests for changes to checkout, bulk lists, or high-cardinality queries.
+- Use explain plans only against representative PostgreSQL schema/data and record why an index is added.
+
+## Anti Patterns
+
+- Repository lookup inside a stream/loop for every row when IDs can be batched.
+- Loading every product/user/order and filtering in Java.
+- Holding a database transaction open while sending email, calling HTTP, or sleeping.
+- Adding an in-memory cache that becomes inconsistent across application instances.
+- “Fixing” overselling with only a synchronized Java method.
+- Optimizing code with no identified query, allocation, or latency problem.
+
+## Examples
+
+```java
+Map<Long, ProductEntity> productsById = productRepository
+        .findAllById(productIds)
+        .stream()
+        .collect(Collectors.toMap(ProductEntity::getProductId, Function.identity()));
+```
+
+Use a single batch query like this instead of one `findById` for each cart item.
+
+## Checklist
+
+- [ ] Query count is bounded and N+1 access is avoided.
+- [ ] Growing list APIs are paginated.
+- [ ] Transactions are short and concurrency-safe.
+- [ ] Order identifiers cannot collide under concurrency.
+- [ ] Required PostgreSQL indexes are present and justified.
+- [ ] No unsupported cache, broker, or async system was invented.
+- [ ] Performance-sensitive behavior has appropriate tests or measurements.

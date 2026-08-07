@@ -1,0 +1,67 @@
+---
+description: Spring Security, JWT, credentials, authorization, and data-protection rules
+alwaysApply: true
+---
+
+# Security
+
+## Purpose
+
+Prevent generated code from weakening authentication, authorization, credential handling, or user-data isolation.
+
+## Scope
+
+Apply to Spring Security, JJWT, users, passwords, roles, user-owned resources, configuration, logs, tests, and Actuator exposure.
+
+## Mandatory Rules
+
+- Treat JWT authentication as incomplete. `AuthController`, `AuthService`, JWT filters, `JwtService`, `SecurityConfig`, `CustomUserDetailsService`, and `CustomUserPrincipal` are placeholders until implemented and tested.
+- Use Spring Security's filter chain and `Authentication`/principal as the source of user identity. Never authorize access from a caller-controlled `user_id` header, query parameter, or JSON field.
+- Enforce ownership for addresses, carts, cart items, orders, and user-profile operations in the service/repository query, not only in the UI or controller.
+- Hash passwords with a configured `PasswordEncoder` such as BCrypt before persistence. Never compare or store plaintext passwords.
+- Use the existing `Role` enum (`CUSTOMER`, `ADMIN`, `MERCHANT`) and map authorities deliberately. Do not infer admin status from email or numeric user ID.
+- Load the JWT signing secret from `JWT_SECRET` through `JwtProperties`. Validate minimum key strength and positive expiration at startup; never provide a committed fallback secret.
+- Keep access tokens short-lived. If refresh tokens are implemented, validate, rotate, revoke, and store them according to an explicit design; do not merely extend access-token lifetime.
+- For stateless JWT APIs, configure session creation, CSRF, CORS, public endpoints, authentication entry points, and access-denied handling explicitly.
+- Restrict management endpoints. Preserve the current default exposure of `health,info` unless a requirement and authorization policy justify more.
+- Never log passwords, JWTs, signing keys, `Authorization` headers, database credentials, or full authentication payloads.
+- The repository currently tracks a `.env` file even though `.gitignore` excludes it. Never print or copy its values. If secret remediation is in scope, remove it from tracking, rotate exposed values, and document safe local setup.
+- Keep secrets in environment variables or an explicitly configured secret manager; do not add them to YAML, tests, schema seeds, examples, or command output.
+
+## Best Practices
+
+- Use constant-time, framework-provided password and token verification.
+- Return the same authentication failure message for unknown users and bad passwords.
+- Validate account flags (`enabled`, active, locked, expired, credentials expired) defensively against nulls.
+- Add security tests for public endpoints, missing/invalid/expired tokens, each role, and cross-user access.
+- Prefer repository methods that include ownership, such as `findByOrderIdAndUserId`, to fetch-then-check patterns.
+- Use 401 for unauthenticated requests and 403 for authenticated requests lacking role or ownership.
+
+## Anti Patterns
+
+- `permitAll()` on all endpoints to make development easier.
+- Parsing a JWT without verifying signature, issuer/audience policy, and expiration.
+- Accepting a role from public registration input.
+- Returning password hashes, tokens, internal account flags, or secrets in DTOs.
+- Checking ownership only after a write has occurred.
+- Committing `.env`, generated credentials, or sample production tokens.
+
+## Examples
+
+```java
+OrderEntity order = orderRepository.findByOrderIdAndUserId(orderId, currentUserId)
+        .orElseThrow(() -> new OrderNotFoundException(
+                "Order not found with id: " + orderId));
+```
+
+Resolve `currentUserId` from the authenticated principal, never from `@RequestHeader("user_id")` in new protected code.
+
+## Checklist
+
+- [ ] Authentication is real, not inferred from placeholder classes.
+- [ ] User identity comes from the verified principal.
+- [ ] Role and ownership checks cover every user-owned resource.
+- [ ] Passwords and tokens use framework cryptography correctly.
+- [ ] No secret can enter source, logs, tests, docs, or responses.
+- [ ] Actuator and public routes follow least privilege.
+- [ ] Security success and failure paths are tested.

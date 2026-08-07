@@ -1,0 +1,64 @@
+---
+description: PostgreSQL, Spring Data JPA, Hibernate, and transactional data-access rules
+alwaysApply: true
+---
+
+# Database Access
+
+## Purpose
+
+Keep generated persistence code correct for PostgreSQL and the repository's Spring Data JPA model.
+
+## Scope
+
+Apply to `schema.sql`, JPA entities, repositories, service transactions, queries, indexes, and database configuration.
+
+## Mandatory Rules
+
+- PostgreSQL is the only implemented database. Do not generate MySQL, MongoDB, Redis, or vendor-neutral behavior that contradicts PostgreSQL.
+- Use Spring Data `JpaRepository<Entity, Long>` and the existing `I...Repository` naming convention.
+- Keep table and column changes synchronized between entities and `schema.sql`. The repository does not use Flyway or Liquibase; do not invent migrations without adding and documenting that tool explicitly.
+- Preserve the eight-table domain: `users`, `addresses`, `categories`, `products`, `cart`, `cart_items`, `orders`, and `order_items`.
+- Match database constraints in entity defaults and nullability. Preserve unique email/category/order number/cart ownership constraints and positive price/quantity/stock rules.
+- Use `BigDecimal` and explicit precision/scale for monetary columns.
+- Persist enums with `EnumType.STRING`; database values must match enum constant names.
+- Place multi-write workflows in service-level transactions. Cart mutation and checkout must remain atomic.
+- Query by both resource ID and owner ID for user-owned resources, as demonstrated by `findByOrderIdAndUserId`.
+- Do not implement stock decrement as an unlocked read-check-write sequence for production concurrency. Use optimistic versioning, a pessimistic lock, or an atomic conditional update and test the conflict path.
+- Do not generate order numbers from `repository.count()`. Use a collision-safe database sequence or UUID-based strategy when fixing that path.
+
+## Best Practices
+
+- Prefer derived queries for simple predicates; use explicit JPQL/native queries only when the method name becomes unclear or locking/atomic updates require it.
+- Add indexes for foreign keys and frequent filters, and justify every new index against a query path.
+- Fetch related rows in batches for cart/order responses rather than issuing one product lookup per item.
+- Add pagination for growing collections such as products, users, and orders.
+- Let database constraints provide a final integrity boundary, but validate expected business conflicts in the service for clear API errors.
+- Keep scalar foreign-key fields to match the current entities; plan and test serialization/query changes before introducing JPA relationships.
+
+## Anti Patterns
+
+- Calling `findAll()` for a new unbounded production endpoint.
+- Adding a foreign-key column only to the entity or only to `schema.sql`.
+- Swallowing `DataIntegrityViolationException` or leaking its SQL text to clients.
+- Using `double` for `DECIMAL(10,2)` fields.
+- Assuming `ddl-auto=update` is a production migration strategy.
+- Adding repository methods that fetch a user-owned record without ownership criteria when the caller acts on that record.
+
+## Examples
+
+```java
+Optional<OrderEntity> findByOrderIdAndUserId(Long orderId, Long userId);
+```
+
+For a future atomic stock update, require a query equivalent to “decrement where product ID matches and stock is at least the requested quantity,” and treat an update count of zero as `OutOfStockException`.
+
+## Checklist
+
+- [ ] Entity and `schema.sql` definitions agree.
+- [ ] Constraints, enum strings, defaults, precision, and nullability agree.
+- [ ] User-owned lookups include ownership.
+- [ ] Multi-write behavior is transactional.
+- [ ] Concurrency and lost updates were addressed.
+- [ ] Query count, pagination, and indexes were considered.
+- [ ] No unconfigured migration or database technology was introduced.

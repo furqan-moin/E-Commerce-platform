@@ -1,0 +1,70 @@
+---
+description: End-to-end feature workflow for this Spring Boot ecommerce repository
+alwaysApply: true
+---
+
+# Feature Development
+
+## Purpose
+
+Guide AI assistants from requirement analysis through a verified, documented implementation without bypassing repository conventions.
+
+## Scope
+
+Apply whenever adding or changing application behavior, API contracts, persistence, configuration, or security.
+
+## Mandatory Rules
+
+Before writing code:
+
+1. Restate the concrete behavior, actors, inputs, outputs, and failure cases.
+2. Search controllers, services, repositories, DTOs, entities, exceptions, tests, `schema.sql`, README, and `FEATURE_ROADMAP.md` for the closest implementation.
+3. Reuse existing domain types and abstractions; do not create a parallel service, DTO family, JWT filter, or exception hierarchy.
+4. Follow the controller -> service -> repository architecture and current package layout.
+5. Identify existing `/ecommerce/v1` clients and preserve backward compatibility unless a migration is explicit.
+6. Identify environment properties and update `application.yaml` only; never recreate `application.properties`.
+7. Determine whether `schema.sql` and a real migration strategy are required. Do not rely silently on Hibernate update for production changes.
+8. Define useful technical or business metrics only when Actuator/Micrometer can measure a meaningful outcome.
+9. Define structured log events at failure or lifecycle boundaries; never log secrets or full sensitive payloads.
+10. Plan JUnit 5 tests at the service boundary and Spring MVC/security tests when HTTP or authorization changes.
+11. Identify README, roadmap, schema, configuration, API table, and diagram updates.
+12. Evaluate query count, pagination, allocations, and database round trips.
+13. Evaluate authentication, authorization, ownership, password/token handling, and input validation.
+14. Evaluate concurrent checkout/cart behavior and whether a single-node assumption is being introduced.
+15. Enumerate missing resource, invalid input, duplicate, conflict, database, and partial-failure behavior.
+16. Confirm logs, health, metrics, and error responses make failures diagnosable.
+17. Remove duplication rather than copying a similar mapper, validator, or repository query without reason.
+18. Match naming, Lombok, DTO, repository, exception, transaction, and test conventions in this repository.
+
+During implementation, keep the smallest coherent change and do not mix broad REST migrations, security rewrites, or cleanup into an unrelated feature.
+
+## Best Practices
+
+- Implement in dependency order: domain/schema -> repository -> service -> controller -> tests -> documentation.
+- Add the failure-path test before or alongside logic that protects stock, ownership, or state transitions.
+- Use focused commits or patches that can be reviewed independently.
+- Run `mvn test` after relevant edits and inspect the full error, not only the last line.
+- Re-read the diff for accidental secret exposure, generated files, stale imports, and unrelated formatting.
+
+## Anti Patterns
+
+- Coding from roadmap text without checking whether the code already diverged.
+- Declaring a feature complete because placeholder classes compile.
+- Adding a dependency before proving existing Spring/JDK facilities are insufficient.
+- Implementing only the happy path.
+- Changing public routes or schema without compatibility and documentation work.
+- Skipping tests because Maven compilation succeeds.
+
+## Examples
+
+For a “clear cart” feature, first inspect `CartController`, `CartService`, cart repositories, checkout's cart deletion, roadmap claims, and ownership gaps. Then add an owner-scoped transactional service method, a validated/authenticated API, unit tests for empty/missing/foreign carts, and correct stale documentation. Do not merely add the endpoint named in the roadmap.
+
+## Checklist
+
+- [ ] Requirements and failure cases are explicit.
+- [ ] Similar code and documentation were inspected.
+- [ ] Architecture and backward compatibility are preserved.
+- [ ] Configuration, schema, security, concurrency, and performance were considered.
+- [ ] Tests cover success, edge, and failure behavior.
+- [ ] Observability and documentation match the implementation.
+- [ ] `mvn test` passes and the final diff contains only intended changes.
