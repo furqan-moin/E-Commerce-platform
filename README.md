@@ -22,6 +22,7 @@ A backend e-commerce platform built with **Java 21**, **Spring Boot 3.5**, **Pos
 For detailed APIs, business rules, and file checklists see:
 - [`FEATURE_ROADMAP.md`](FEATURE_ROADMAP.md)
 - [`structured-project-plan.docs`](structured-project-plan.docs)
+- [`docs/security-module-design.md`](docs/security-module-design.md) — proposed authentication, authorization, token, and Amazon federation design
 
 ---
 
@@ -89,9 +90,95 @@ src/main/java/com/furqan/ecommerce/
 
 ## Prerequisites
 
-- Java 21+
-- Maven 3.9+
-- PostgreSQL (local or remote)
+- Java 21 (Amazon Corretto 21 recommended)
+- Docker, if running PostgreSQL locally in a container
+- PostgreSQL with the `ecommerce` database created
+- Git
+
+The project includes the Maven Wrapper, configured to download and use Maven 3.9.11. A separate Maven installation is not required.
+
+## Getting Started
+
+### 1. Clone the repository
+
+```bash
+git clone "https://github.com/furqan-moin/E-Commerce-platform.git"
+cd E-Commerce-platform
+```
+
+### 2. Start PostgreSQL
+
+Ensure PostgreSQL is running and accessible at `localhost:5432`, and that the `ecommerce` database exists.
+
+If you use the existing local Docker container, start it if necessary and verify that PostgreSQL is accepting connections.
+
+### 3. Configure environment variables
+
+The application reads its configuration from `src/main/resources/application.yaml`.
+
+For a local development session, export the required variables in your terminal:
+
+```bash
+export DB_URL="jdbc:postgresql://localhost:5432/ecommerce"
+export DB_USERNAME="postgres"
+export DB_PASSWORD="<your-local-database-password>"
+export JWT_SECRET="$(openssl rand -base64 32)"
+```
+
+Replace the database username and password with your actual local PostgreSQL credentials. Keep secrets out of source control.
+
+The application also supports optional configuration variables:
+
+- `SERVER_PORT` — defaults to `8081`
+- `JPA_DDL_AUTO` — defaults to `update`
+- `JPA_SHOW_SQL` — defaults to `false`
+- `JWT_EXPIRATION_MS` — defaults to `900000` (15 minutes)
+- `JWT_REFRESH_EXPIRATION_MS` — defaults to `604800000` (7 days)
+- `MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE` — defaults to `health,info`
+
+These defaults are intended for local development and should be reviewed before production deployment.
+
+### 4. Run the application
+
+```bash
+./mvnw spring-boot:run
+```
+Base URL: `http://localhost:8081/ecommerce/v1`
+
+### 5. Verify application health
+
+In another terminal, run:
+
+```bash
+curl -i http://localhost:8081/actuator/health
+```
+
+Expected response:
+
+```json
+{"status":"UP"}
+```
+
+
+### 6. Build and verify
+
+```bash
+./mvnw clean verify
+```
+
+This command performs a clean Maven build, compiles the application, runs any discovered tests, and packages the executable Spring Boot JAR.
+
+The generated artifact is located at:
+
+`target/ecommerce-platform-0.0.1-SNAPSHOT.jar`
+
+### Technology Versions
+
+- Java: 21 (verified locally with Amazon Corretto 21.0.11)
+- Spring Boot: 3.5.0
+- Maven Wrapper: 3.3.4
+- Maven distribution: 3.9.11
+- Database: PostgreSQL (local development currently uses PostgreSQL 17.10)
 
 ---
 
